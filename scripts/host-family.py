@@ -438,6 +438,76 @@ def revoke_invite(slug):
     print('Invitation revoked. The family journal was not deleted.')
 
 
+def update_family(slug, source, refresh_default_labels=False):
+    """Replace runtime code without replacing a registered family's journal or access."""
+    app, _, data = paths(slug)
+    info = metadata(slug)
+    if not info['enabled'] or source.resolve() == app.resolve():
+        raise ValueError('need an enabled family and a separate reviewed source template')
+    active = runtime_settings(data)
+    with tempfile.TemporaryDirectory() as temporary:
+        temporary = Path(temporary)
+        config_path, catalog_path = temporary / 'family.json', temporary / 'catalog.json'
+        config_path.write_text(json.dumps(active['config']) if active else (app / 'config/family.json').read_text())
+        if active:
+            catalog = active['catalog']
+        else:
+            with contextlib.closing(sqlite3.connect(data / 'journal.sqlite3')) as db:
+                catalog = [(since, json.loads(menus)) for since, menus in db.execute('SELECT since,menus FROM family_catalog ORDER BY since')]
+        catalog_path.write_text(json.dumps(catalog))
+        staged, previous = temporary / 'next', temporary / 'previous'
+        stage(source.resolve(), staged, config_path, catalog_path)
+        for path in (app / 'web').glob('avatar-*.png'):
+            shutil.copyfile(path, staged / 'web' / path.name)
+        backup(slug)
+        unit = f'fq-hosted-{slug}.service'
+        unit_path = UNITS / unit
+        old_unit = unit_path.read_text()
+        shutil.copytree(app, previous)
+        gid = grp.getgrnam(f'fq-{slug}').gr_gid
+
+        def install(tree):
+            for path in tree.rglob('*'):
+                target = app / path.relative_to(tree)
+                if path.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    shutil.copyfile(path, target)
+                os.chown(target, 0, gid)
+                target.chmod(0o750 if target.is_dir() else 0o640)
+
+        run('systemctl', 'stop', unit)
+        try:
+            install(staged)
+            if refresh_default_labels:
+                configuration = active['config'] if active else json.loads(config_path.read_text())
+                today = (int(time.time() * 1000) + configuration['utcOffsetMinutes'] * 60000) // 86400000
+                with contextlib.closing(sqlite3.connect(data / 'journal.sqlite3')) as db, db:
+                    versions = [(since, json.loads(menus)) for since, menus in db.execute('SELECT since,menus FROM family_catalog ORDER BY since')]
+                    current = next(menus for since, menus in reversed(versions) if since <= today)
+                    for since, menus in [(today, current)] + [(since, menus) for since, menus in versions if since > today]:
+                        modified = False
+                        for menu in menus:
+                            for task in menu['afternoon']:
+                                if task[0] == 'wash' and task[1] == 'Помыться, отнести свою одежду в стирку, надеть трусики':
+                                    task[1] = 'Принять душ'
+                                    modified = True
+                        if modified:
+                            db.execute('INSERT OR REPLACE INTO family_catalog VALUES(?,?)', (since, json.dumps(menus, ensure_ascii=False)))
+            unit_path.write_text(service(slug, info['hostname'], info['port']))
+            run('systemctl', 'daemon-reload')
+            run('systemctl', 'start', unit)
+            wait_for_server(info['port'])
+        except BaseException:
+            run('systemctl', 'stop', unit)
+            install(previous)
+            unit_path.write_text(old_unit)
+            run('systemctl', 'daemon-reload')
+            run('systemctl', 'start', unit)
+            raise
+    print('Family runtime updated; journal, registration, photos and device access preserved.')
+
+
 def export(slug, output):
     app, config, data = paths(slug)
     active = runtime_settings(data)
@@ -572,6 +642,10 @@ def main():
     invitation.add_argument('--source', type=Path, default=ROOT)
     revoke = commands.add_parser('revoke-invite')
     revoke.add_argument('--slug', type=slug_value, required=True)
+    upgrade = commands.add_parser('update')
+    upgrade.add_argument('--slug', type=slug_value, required=True)
+    upgrade.add_argument('--source', type=Path, default=ROOT)
+    upgrade.add_argument('--refresh-default-labels', action='store_true')
     out = commands.add_parser('export')
     out.add_argument('--slug', type=slug_value, required=True)
     out.add_argument('--output', type=Path, required=True)
@@ -599,6 +673,8 @@ def main():
                 invite(args.slug, args.output.resolve(), args.days, args.source)
             elif args.command == 'revoke-invite':
                 revoke_invite(args.slug)
+            elif args.command == 'update':
+                update_family(args.slug, args.source, args.refresh_default_labels)
             elif args.command == 'export':
                 export(args.slug, args.output.resolve())
             elif args.command == 'configure':

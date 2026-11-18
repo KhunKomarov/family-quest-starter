@@ -158,6 +158,28 @@ class OnboardingTest(unittest.TestCase):
                 self.assertIn('web/avatar-2.png', archive.namelist())
                 self.assertNotIn('web/avatar-3.png', archive.namelist())
                 self.assertNotIn('connection/parent-codes.json', archive.namelist())
+            status, _, payload = request('/parent/api/settings', cookie=cookie)
+            self.assertEqual(status, 200)
+            settings = json.loads(payload)
+            custom = {'id': 'f' * 32, 'kind': 'weekly', 'durationDays': 7, 'title': 'Своя неделя',
+                      'reward': 'Семейная прогулка', 'points': 8, 'days': 3, 'allowedSkips': 2,
+                      'startedAt': 946684800000}
+            update = {'id': secrets.token_hex(16), 'expected': settings['revision'],
+                      'goal': {**settings['config']['goal'], 'allowedSkips': 3}, 'childGoals': [[custom], []]}
+            before = int(time.time() * 1000)
+            status, _, payload = request('/parent/api/settings', update, cookie=cookie)
+            self.assertEqual(status, 200)
+            changed = json.loads(payload)
+            started = changed['config']['childGoals'][0][0]['startedAt']
+            self.assertGreaterEqual(started, before)
+            self.assertEqual(changed['config']['goal']['allowedSkips'], 3)
+            retry = request('/parent/api/settings', update, cookie=cookie)
+            self.assertEqual(retry[0], 200)
+            self.assertEqual(json.loads(retry[2])['config']['childGoals'][0][0]['startedAt'], started)
+            stale = dict(update, id=secrets.token_hex(16))
+            self.assertEqual(request('/parent/api/settings', stale, cookie=cookie)[0], 409)
+            self.assertEqual(request('/parent/api/settings', update, cookie=cookie,
+                                     origin_header='https://foreign.test')[0], 403)
             process.terminate()
             process.wait(timeout=5)
             start()
@@ -166,6 +188,8 @@ class OnboardingTest(unittest.TestCase):
             status, _, data = request('/parent/api/state', cookie=cookie)
             self.assertEqual(status, 200)
             self.assertEqual(len(json.loads(data)['wallets']), 2)
+            self.assertEqual(json.loads(data)['periodGoals'][0]['kind'], 'weekly')
+            self.assertEqual(json.loads(data)['periodGoals'][0]['startedAt'], started)
             status, _, data = request('/parent/family-config.js', cookie=cookie)
             self.assertEqual(status, 200)
             self.assertIn(b'profiles', data)

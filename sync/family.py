@@ -36,13 +36,14 @@ OLD_BINS = {"bins", "bags"}
 MINUTE_LIMIT = 30
 ORDINARY = 7
 RECOVERY_START = (date(2026, 11, 12) - date(1970, 1, 1)).days
-TASK_SECTIONS = {"morning": "Утро", "afternoon": "Дневные дела", "rewards": "Супер дела"}
+TASK_SECTIONS = {"morning": "Утро", "afternoon": "Дневные дела", "rewards": "Супер дела", "repeatables": "Повторяемые дела"}
 CHILD_NAMES = tuple(CONFIG["profiles"])
 LONG_GOAL = {
     "start": (date(2026, 11, 13) - date(1970, 1, 1)).days,
     "skipSince": (date(2026, 11, 16) - date(1970, 1, 1)).days if CONFIG["goal"]["allowOneSkip"] else 1_000_000,
     "points": CONFIG["goal"]["points"], "days": CONFIG["goal"]["days"],
     "title": CONFIG["goal"]["title"], "reward": CONFIG["goal"]["reward"],
+    'allowedSkips': CONFIG['goal'].get('allowedSkips', int(CONFIG['goal']['allowOneSkip'])),
 }
 FAMILY_LINK_REWARDS = {
     "morning": "Экранное время утром", "youtube": "Экранное время днём",
@@ -60,7 +61,8 @@ def configure(config):
     LONG_GOAL = {**LONG_GOAL, 'points': CONFIG['goal']['points'], 'days': CONFIG['goal']['days'],
                  'title': CONFIG['goal']['title'], 'reward': CONFIG['goal']['reward'],
                  'skipSince': (date(2026, 11, 16) - date(1970, 1, 1)).days
-                 if CONFIG['goal']['allowOneSkip'] else 1_000_000}
+                 if CONFIG['goal']['allowOneSkip'] else 1_000_000,
+                 'allowedSkips': CONFIG['goal'].get('allowedSkips', int(CONFIG['goal']['allowOneSkip']))}
 
 
 def now_ms():
@@ -109,7 +111,7 @@ def add_catalog_task(db, catalog, day, identifier, body):
     if day >= MORNING_MINIMUM_SINCE and section == "morning":
         section = "afternoon"
     rate = body.get("rate")
-    if section == "rewards":
+    if section in ("rewards", "repeatables"):
         if type(rate) is not int or not 1 <= rate <= 120:
             raise ValueError("invalid reward rate")
         entry = [identifier, title, rate]
@@ -124,17 +126,17 @@ def add_catalog_task(db, catalog, day, identifier, body):
         menus = deepcopy(original)
         for child in assigned:
             menu = menus[child]
-            names = {task[1].casefold() for task in daily_menu(menu, since)[section]}
-            if section == "rewards":
+            names = {task[1].casefold() for task in daily_menu(menu, since).get(section, [])}
+            if section in ("rewards", "repeatables"):
                 names.add(menu["video"]["title"].casefold())
             if title.casefold() in names:
                 raise DuplicateTask("task already assigned")
-            menu[section].append(entry)
+            menu.setdefault(section, []).append(entry)
         db.execute("INSERT OR REPLACE INTO family_catalog VALUES (?, ?)",
                    (since, json.dumps(menus, ensure_ascii=False)))
     names = ", ".join(CHILD_NAMES[child] for child in sorted(assigned))
     label = f"{title}\n{TASK_SECTIONS[section]} · {names}"
-    if section == "rewards":
+    if section in ("rewards", "repeatables"):
         label += f" · {rate} мин"
     return label
 
@@ -148,6 +150,9 @@ def valid_task(task, child, menu):
         return any(task[6:] == identifier for identifier, _, _ in menu["rewards"])
     if task.startswith("video:"):
         return is_id(task[6:])
+    if task.startswith('repeat:'):
+        parts = task.split(':')
+        return len(parts) == 3 and is_id(parts[2]) and any(parts[1] == row[0] for row in menu.get('repeatables', []))
     return task.startswith("daily:") and is_id(task[6:])
 
 
@@ -356,6 +361,7 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
     afternoon = []
     rewards = []
     rates = {identifier: rate for identifier, _, rate in menu["rewards"]}
+    repeat_rates = {identifier: rate for identifier, _, rate in menu.get('repeatables', [])}
     marked_minutes = {task: ((at + OFFSET) % DAY) // 60_000 for at, _, task in marks}
     afternoon_rates = {task: afternoon_task_rate(day, task, title, menu.get("afternoonMinutes", 5),
                                                 cutover, marked_minutes.get(task))
@@ -381,6 +387,10 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
                 bats += video["bats"]
             else:
                 waiting_videos += 1
+        elif task.startswith('repeat:'):
+            rate = repeat_rates.get(task.split(':')[1])
+            if rate is not None:
+                credit(rate)
         elif task[6:] in rates:
             credit(rates[task[6:]])
 
@@ -419,7 +429,7 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
         elif task == "parent":
             parents += 1
             settle_rewards()
-        elif task.startswith(("bonus:", "video:")):
+        elif task.startswith(("bonus:", "video:", "repeat:")):
             if reached():
                 apply_reward(task)
             else:
@@ -433,7 +443,7 @@ def reward_history(first, start, today, cells, adjustments, catalog, cutoff, aft
     earned = [0] * CHILD_COUNT
     pending = [[] for _ in range(CHILD_COUNT)]
     window_recovery = pending.copy()
-    goal_carry = [{"streak": 0, "earned": False, "surplus": 0, "missUsed": False} for _ in range(CHILD_COUNT)]
+    goal_carry = [{"streak": 0, "earned": False, "surplus": 0, "missUsed": False, 'missCount': 0} for _ in range(CHILD_COUNT)]
     goal_progress = [progress.copy() for progress in goal_carry]
     grants = [{} for _ in range(CHILD_COUNT)]
     calendar_history = []
@@ -485,11 +495,13 @@ def reward_history(first, start, today, cells, adjustments, catalog, cutoff, aft
                 progress["surplus"] = points - threshold if met_goal else 0
                 if met_goal:
                     progress["streak"] += 1
-                elif progress["streak"] and day >= LONG_GOAL["skipSince"] and not progress["missUsed"]:
+                elif progress["streak"] and day >= LONG_GOAL["skipSince"] and progress['missCount'] < LONG_GOAL['allowedSkips']:
+                    progress['missCount'] += 1
                     progress["missUsed"] = True
                 else:
                     progress["streak"] = 0
                     progress["missUsed"] = False
+                    progress['missCount'] = 0
                 progress["earned"] = progress["streak"] >= LONG_GOAL["days"]
                 if day < start:
                     goal_carry[child] = progress.copy()
@@ -551,7 +563,30 @@ def snapshot(db, today, parent=False, catalog=None):
               "cells": [row for row in cells if row[0] >= start], "adjustments": [row for row in adjustments if row[0] >= start],
               "wallets": [total - spent.get(child, 0) for child, total in enumerate(earned)], "catalog": catalog,
               "recoverySince": RECOVERY_START, "startRecovery": recovery,
-              "longGoal": {**LONG_GOAL, "carry": goal_carry}}
+              "longGoal": {**LONG_GOAL, "carry": goal_carry}, 'familyConfig': CONFIG}
+    if CONFIG.get('childGoals'):
+        import goals
+        marked_by_day = defaultdict(list)
+        adjustment_by_day = defaultdict(list)
+        for day, child, task, at, checked, *_ in cells:
+            if checked:
+                marked_by_day[day, child].append((at, task))
+        for day, child, sign, at, *_ in adjustments:
+            adjustment_by_day[day, child].append((at, sign))
+
+        def goal_score(day, child, begin, end):
+            menu = daily_menu(menus_on(catalog, day)[child], day)
+            all_marked = {task for at, task in marked_by_day[day, child] if at < end}
+            marked = {task for at, task in marked_by_day[day, child] if begin <= at < end}
+            required = {task for task, _ in menu['morning']} if day < MORNING_MINIMUM_SINCE else REQUIRED_MORNING_IDS
+            morning_met = required <= all_marked
+            eligible = {task for task, _ in menu['morning'] + menu['afternoon']}
+            adjustments_total = sum(sign for at, sign in adjustment_by_day[day, child] if begin <= at < end)
+            score = max(0, len(eligible & marked) + adjustments_total)
+            extra = sum(task.startswith(('bonus:', 'video:', 'repeat:')) for task in marked)
+            return {'score': score, 'morningMet': morning_met, 'extra': extra}
+
+        result['periodGoals'] = goals.evaluate(CONFIG, now_ms(), first_day, goal_score)
     if afternoon_cutover:
         result["afternoonRateCutover"] = afternoon_cutover
     if parent:
@@ -666,7 +701,7 @@ def parent_action(database, actor, body):
             task = body.get("task")
             if not is_child(child) or not valid_task(task, child, menus_on(catalog, day)[child]):
                 raise ValueError("invalid task")
-            video = task.startswith("video:")
+            video = task.startswith(("video:", "repeat:"))
             if action == "restore-video" and not video:
                 raise ValueError("not a video mark")
             label = daily_title(db, day, task) if task.startswith("daily:") else task

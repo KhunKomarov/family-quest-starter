@@ -35,11 +35,11 @@ class CalendarHistoryTest(unittest.TestCase):
                 self.assertFalse(any(item["kind"] == "long-goal" for item in before_midnight["familyLink"]))
                 self.assertFalse(any(item["kind"] == "long-goal" for item in after_midnight["familyLink"]))
                 self.assertEqual(archived["longGoal"]["carry"][0],
-                                 {"streak": 1, "earned": False, "surplus": 9, "missUsed": False})
+                                 {"streak": 1, "earned": False, "surplus": 9, "missUsed": False, 'missCount': 0})
                 self.assertEqual(after_first_skip["longGoal"]["carry"][1],
-                                 {"streak": 2, "earned": False, "surplus": 0, "missUsed": True})
+                                 {"streak": 2, "earned": False, "surplus": 0, "missUsed": True, 'missCount': 1})
                 self.assertEqual(after_second_skip["longGoal"]["carry"][2],
-                                 {"streak": 0, "earned": False, "surplus": 0, "missUsed": False})
+                                 {"streak": 0, "earned": False, "surplus": 0, "missUsed": False, 'missCount': 0})
                 after_archive = family.snapshot(db, first + 12 + family.WINDOW - 1)
                 self.assertTrue(after_archive["longGoal"]["carry"][0]["earned"])
                 self.assertFalse(after_archive["longGoal"]["carry"][1]["earned"])

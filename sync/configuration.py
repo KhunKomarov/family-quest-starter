@@ -1,6 +1,32 @@
 """Validation shared by the setup wizard, journal and build script."""
 
 import json
+import re
+
+
+def validate_goal(goal, maximum_days=366):
+    if not isinstance(goal, dict):
+        raise ValueError('goal is required')
+    result = {}
+    for key in ('title', 'reward'):
+        if not isinstance(goal.get(key), str) or not goal[key].strip() or len(goal[key].strip()) > 80:
+            raise ValueError(f'goal.{key} must contain 1–80 characters')
+        result[key] = goal[key].strip()
+    for key, minimum, maximum in (('points', 1, 50), ('days', 1, maximum_days)):
+        if type(goal.get(key)) is not int or not minimum <= goal[key] <= maximum:
+            raise ValueError(f'goal.{key} is outside its supported range')
+        result[key] = goal[key]
+    allowed = goal.get('allowedSkips')
+    if allowed is None:
+        if type(goal.get('allowOneSkip')) is not bool:
+            raise ValueError('a skip count is required')
+        result['allowOneSkip'] = goal['allowOneSkip']
+    else:
+        if type(allowed) is not int or not 0 <= allowed <= 31:
+            raise ValueError('allowedSkips must be an integer between 0 and 31')
+        result['allowOneSkip'] = allowed > 0
+        result['allowedSkips'] = allowed
+    return result
 
 
 def validate_config(config):
@@ -14,20 +40,49 @@ def validate_config(config):
     offset = config.get('utcOffsetMinutes')
     if type(offset) is not int or not -720 <= offset <= 840:
         raise ValueError('utcOffsetMinutes must be an integer between -720 and 840')
-    goal = config.get('goal')
-    if not isinstance(goal, dict):
-        raise ValueError('goal is required')
-    for key in ('title', 'reward'):
-        if not isinstance(goal.get(key), str) or not goal[key].strip() or len(goal[key].strip()) > 80:
-            raise ValueError(f'goal.{key} must contain 1–80 characters')
-    for key, minimum, maximum in (('points', 1, 50), ('days', 1, 30)):
-        if type(goal.get(key)) is not int or not minimum <= goal[key] <= maximum:
-            raise ValueError(f'goal.{key} must be an integer between {minimum} and {maximum}')
-    if type(goal.get('allowOneSkip')) is not bool:
-        raise ValueError('goal.allowOneSkip must be true or false')
-    return {'profiles': [name.strip() for name in profiles], 'utcOffsetMinutes': offset,
-            'goal': {key: value.strip() if isinstance(value, str) else value for key, value in goal.items()
-                     if key in ('title', 'reward', 'points', 'days', 'allowOneSkip')}}
+    result = {'profiles': [name.strip() for name in profiles], 'utcOffsetMinutes': offset,
+              'goal': validate_goal(config.get('goal'), 30)}
+    if 'childGoals' in config:
+        items = config['childGoals']
+        if not isinstance(items, list) or len(items) != len(profiles):
+            raise ValueError('childGoals must match the profiles')
+        result['childGoals'] = []
+        for item in items:
+            if not isinstance(item, list) or len(item) > 10:
+                raise ValueError('invalid child goals')
+            goals = []
+            seen = set()
+            for raw in item:
+                goal = validate_goal(raw)
+                identifier, kind = raw.get('id'), raw.get('kind')
+                if not isinstance(identifier, str) or not re.fullmatch('[0-9a-f]{32}', identifier) or identifier in seen:
+                    raise ValueError('goal IDs must be unique within a child profile')
+                if kind not in ('weekly', 'monthly', 'individual'):
+                    raise ValueError('invalid goal kind')
+                duration = raw.get('durationDays', 7 if kind == 'weekly' else 30)
+                if type(duration) is not int or not 1 <= duration <= 366:
+                    raise ValueError('durationDays must be between 1 and 366')
+                goal.update(id=identifier, kind=kind, durationDays=7 if kind == 'weekly' else 30 if kind == 'monthly' else duration)
+                if 'startedAt' in raw:
+                    if type(raw['startedAt']) is not int or raw['startedAt'] < 946684800000:
+                        raise ValueError('invalid goal start')
+                    goal['startedAt'] = raw['startedAt']
+                seen.add(identifier)
+                goals.append(goal)
+            result['childGoals'].append(goals)
+    return result
+
+
+def start_new_goals(config, previous, now):
+    """Only the server starts a new goal; edits cannot backdate its start."""
+    for child, goals in enumerate(config.get('childGoals', [])):
+        rows = (previous or {}).get('childGoals', [])
+        old = {goal['id']: goal for goal in rows[child]} if child < len(rows) else {}
+        for goal in goals:
+            prior = old.get(goal['id'])
+            same_period = prior and prior['kind'] == goal['kind'] and prior['durationDays'] == goal['durationDays']
+            goal['startedAt'] = prior.get('startedAt', now) if same_period else now
+    return config
 
 
 def browser_config(config):
@@ -47,13 +102,13 @@ def validate_catalog(catalog, count):
         for menu in menus:
             if not isinstance(menu, dict):
                 raise ValueError('invalid menu')
-            for section in ('morning', 'afternoon', 'rewards'):
-                tasks = menu.get(section)
+            for section in ('morning', 'afternoon', 'rewards', 'repeatables'):
+                tasks = menu.get(section, [] if section == 'repeatables' else None)
                 if not isinstance(tasks, list) or len(tasks) > 100:
                     raise ValueError('each section needs at most 100 tasks')
                 identifiers = set()
                 for task in tasks:
-                    size = 3 if section == 'rewards' else 2
+                    size = 3 if section in ('rewards', 'repeatables') else 2
                     if not isinstance(task, list) or len(task) != size:
                         raise ValueError('invalid task')
                     identifier, title = task[:2]

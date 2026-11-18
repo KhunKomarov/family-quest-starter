@@ -1,6 +1,7 @@
 """Private, single-family journal for task checkboxes."""
 
 import argparse
+import hashlib
 import hmac
 import io
 import json
@@ -15,7 +16,7 @@ from urllib.parse import urlsplit
 
 import family
 import onboarding
-from configuration import browser_config
+from configuration import browser_config, validate_config, start_new_goals
 
 
 TOKEN_PATTERN = re.compile(r"[0-9a-f]{64}")
@@ -45,6 +46,10 @@ class Handler(BaseHTTPRequestHandler):
         return cookie.value if cookie else ""
 
     def do_GET(self):
+        if self.path in ('/setup/goals.css', '/setup/goal-editor.js'):
+            name = self.path.split('/')[-1]
+            self.asset(self.server.assets / 'web' / name, 'text/css' if name.endswith('.css') else 'text/javascript')
+            return
         if re.fullmatch(r'/setup/avatar-[1-3]\.png', self.path):
             self.asset(self.server.assets / 'setup' / self.path.split('/')[-1], 'image/png')
             return
@@ -86,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
         elif not actor:
             self.respond(401, {"error": "unauthorized"})
         elif path == "/parent/api/state":
-            with family.transaction(self.server.database) as db:
+            with self.server.registration_lock, family.transaction(self.server.database) as db:
                 result = family.snapshot(db, family.day_of(family.now_ms()), parent=True)
             result["actor"] = actor
             self.respond(200, result)
@@ -94,10 +99,22 @@ class Handler(BaseHTTPRequestHandler):
             self.send_content(200, 'text/javascript', browser_config(family.CONFIG).encode())
         elif path == '/parent/connect/':
             self.asset(self.server.assets / 'parent/connect.html', 'text/html')
+        elif path == '/parent/goals/':
+            self.asset(self.server.assets / 'parent/goals.html', 'text/html')
+        elif path == '/parent/goals.js':
+            self.asset(self.server.assets / 'parent/goals.js', 'text/javascript')
+        elif path in ('/parent/goals.css', '/parent/goal-editor.js'):
+            name = path.split('/')[-1]
+            self.asset(self.server.assets / 'web' / name, 'text/css' if name.endswith('.css') else 'text/javascript')
+        elif path == '/parent/api/settings':
+            self.respond(200, self.settings_payload())
+        elif path == '/parent/period-goals.js':
+            self.asset(self.server.assets / 'web/period-goals.js', 'text/javascript')
         elif path == '/parent/connect.js':
             self.asset(self.server.assets / 'parent/connect.js', 'text/javascript')
         elif path == '/parent/api/connection':
-            self.connection_pack()
+            with self.server.registration_lock:
+                self.connection_pack()
         elif re.fullmatch(r'/parent/avatar/[0-5]\.png', path):
             index = int(path.split('/')[-1][0])
             if index >= family.CHILD_COUNT:
@@ -122,7 +139,8 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(403, {'error': 'setup_required'})
             return
         if self.path.startswith("/parent/api/") and self.server.parents:
-            self.parent_post()
+            with self.server.registration_lock:
+                self.parent_post()
             return
         if self.path != "/v2/sync":
             self.respond(404, {"error": "not_found"})
@@ -132,7 +150,9 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(401, {"error": "unauthorized"})
             return
         try:
-            result = family.sync_device(self.server.database, device, self.read_json(300_000))
+            body = self.read_json(300_000)
+            with self.server.registration_lock:
+                result = family.sync_device(self.server.database, device, body)
         except (ValueError, TypeError, TimeoutError, OverflowError):
             self.respond(400, {"error": "invalid_request"})
             return
@@ -206,7 +226,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         session = self.session()
         try:
-            body = self.read_json(24_000)
+            body = self.read_json(200_000 if path == "/parent/api/settings" else 24_000)
             if not isinstance(body, dict):
                 raise ValueError("invalid request")
             if path == "/parent/api/login":
@@ -226,6 +246,8 @@ class Handler(BaseHTTPRequestHandler):
                 result = family.parent_action(self.server.database, actor, body)
                 result["actor"] = actor
                 self.respond(200, result)
+            elif path == '/parent/api/settings':
+                self.save_settings(actor, body)
             else:
                 self.respond(404, {"error": "not_found"})
         except family.LoginThrottled:
@@ -240,6 +262,28 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(400, {"error": "invalid_request"})
         except sqlite3.Error:
             self.respond(503, {"error": "retry"})
+
+    def settings_payload(self):
+        encoded = json.dumps(family.CONFIG, sort_keys=True, ensure_ascii=True)
+        return {'config': family.CONFIG, 'revision': hashlib.sha256(encoded.encode()).hexdigest()}
+
+    def save_settings(self, actor, body):
+        if not family.is_id(body.get('id')):
+            raise ValueError('invalid settings request')
+        candidate = start_new_goals(validate_config({**family.CONFIG, 'goal': body.get('goal'), 'childGoals': body.get('childGoals')}),
+                                    family.CONFIG, family.now_ms())
+        duplicate = False
+        with family.transaction(self.server.database, write=True) as db:
+            duplicate = not family.stamp_receipt(db, body['id'], 'settings:' + actor, body)
+            if not duplicate:
+                if body.get('expected') != self.settings_payload()['revision']:
+                    raise family.Conflict('settings changed')
+                db.execute('''INSERT INTO family_settings VALUES(1,?,?) ON CONFLICT(id)
+                              DO UPDATE SET config=excluded.config''',
+                           (json.dumps(candidate, ensure_ascii=False), json.dumps(self.server.parents, ensure_ascii=False)))
+        if not duplicate:
+            family.configure(candidate)
+        self.respond(200, self.settings_payload())
 
     def cookie(self, value, age):
         secure = "" if self.server.preview else "; Secure"
@@ -312,6 +356,12 @@ def main():
     if saved:
         config, parents = saved
         family.configure(config)
+    elif family.CONFIG.get('childGoals'):
+        started = start_new_goals(validate_config(family.CONFIG), None, family.now_ms())
+        with family.transaction(options.database, write=True) as db:
+            db.execute('INSERT INTO family_settings VALUES(1,?,?)',
+                       (json.dumps(started, ensure_ascii=False), json.dumps(parents, ensure_ascii=False)))
+        family.configure(started)
     with ThreadingHTTPServer(("127.0.0.1", options.port), Handler) as server:
         server.database = options.database
         server.tokens = tokens

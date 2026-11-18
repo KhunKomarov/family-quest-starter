@@ -144,7 +144,7 @@
     goalPanel.hidden = !goal || snapshot.today < goal.start;
     if (!goalPanel.hidden) {
       get("#long-goal-heading").textContent = goal.title || "Накопительная цель";
-      const series = snapshot.today >= goal.skipSince ? " дней · можно пропустить 1 день" : " дней подряд";
+      const series = snapshot.today >= goal.skipSince ? ' дней · допустимо пропусков: ' + (goal.allowedSkips === undefined ? 1 : goal.allowedSkips) : " дней подряд";
       get("#long-goal-rule").textContent = "Золотая линия · " + goal.points + " очков в день · "
         + goal.days + series + " → " + (goal.reward || "приз семьи") + " · фиолетовый — перенос";
       const results = children.map((_, index) => stats.longGoalProgress(index));
@@ -175,6 +175,7 @@
   function taskLabel(task, person, date = day) {
     const menu = menuFor(person, date, snapshot.catalog);
     if (task.startsWith("video:")) return menu.video.title;
+    if (task.startsWith('repeat:')) return ((menu.repeatables || []).find(([id]) => id === task.split(':')[1]) || [task, task])[1];
     if (task.startsWith("bonus:")) return (menu.rewards.find(([id]) => "bonus:" + id === task) || [task, task])[1];
     const current = menu.morning.concat(menu.afternoon).find(([id]) => id === task);
     const historical = current || menuFor(person, 0, snapshot.catalog).afternoon.find(([id]) => id === task);
@@ -207,7 +208,7 @@
     const locked = Boolean(value && value[5]);
     const actions = [];
     if (checked || locked) {
-      const restoreVideo = locked && task.startsWith("video:");
+      const restoreVideo = locked && (task.startsWith("video:") || task.startsWith('repeat:'));
       const action = checked ? "reject" : restoreVideo ? "restore-video" : "reopen";
       const label = checked ? "Снять галочку" : restoreVideo ? "Вернуть галочку" : "Разрешить снова";
       actions.push(button(label, () => promptAction({ day, child, task, action, version: value[6] }, label, title)));
@@ -244,7 +245,7 @@
       ["Экранное время за день", current.credit.minutes + " / 30 мин"],
       ["За день", current.credit.bats + " жет."],
       ["За неделю", week.bats + " жет."],
-      ["Видео за неделю", String(week.videos)],
+      ["Повторений за неделю", String(week.videos + week.repeats)],
       ["😺", "+" + current.parentPoints, "Похвала"],
       ["😿", "−" + current.remarks, "Замечания"]
     ].concat(recovery) : []).map(([label, value, description]) => {
@@ -259,11 +260,16 @@
     const videoMarks = Array.from(projected.cells.values())
       .filter(([date, person, task]) => date === day && person === child && task.startsWith("video:"))
       .map(([, , task], index) => [task, menu.video.title + " · отметка " + (index + 1)]);
+    const repeatMarks = (menu.repeatables || []).flatMap(([id, title]) => {
+      const marks = Array.from(projected.cells.values()).filter(([date, person, task]) =>
+        date === day && person === child && task.startsWith('repeat:' + id + ':'));
+      return marks.length ? marks.map(([, , task], index) => [task, title + ' · отметка ' + (index + 1)]) : [['repeat:' + id, title]];
+    });
     const sections = [
       ["Утро", menu.morning],
       ["Дневные дела", menu.afternoon],
       ["Супер дела", menu.rewards.map(([task, title]) => ["bonus:" + task, title])
-        .concat(videoMarks.length ? videoMarks : [["video", menu.video.title]])],
+        .concat(videoMarks.length ? videoMarks : [["video", menu.video.title]], repeatMarks)],
       ["Задания дня", projected.daily.filter(task => task.day === day).map(task => ["daily:" + task.id, task.title])]
     ];
     get("#checklist").replaceChildren(...sections.filter(([, tasks]) => tasks.length).flatMap(([title, tasks]) => {
@@ -340,6 +346,8 @@
 
   function render() {
     renderWeek();
+    if (snapshot.familyConfig) Object.assign(window.FamilyConfig, snapshot.familyConfig);
+    window.FamilyPeriodGoals.render(get('#period-goals'), snapshot.periodGoals || [], children.map(child => child.name));
     if (panel === "checks") renderChecks();
     else if (panel === "limits") renderLimits();
     else if (panel === "daily") renderDaily();

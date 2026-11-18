@@ -40,6 +40,7 @@
       if (!enabled) return;
       const identifier = id();
       if (change.task === "video") change = { ...change, task: "video:" + identifier };
+      if (/^repeat:[^:]+$/.test(change.task)) change = { ...change, task: change.task + ':' + identifier };
       const current = cell(change.day, change.child, change.task);
       if (current && (current[4] || current[5])) return;
       data.queue.push({ ...change, checked: true, id: identifier, guard: current ? current[7] : "" });

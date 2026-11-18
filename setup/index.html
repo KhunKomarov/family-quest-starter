@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#174d43">
   <title>Настроить свою семью · Семейный квест</title>
   <link rel="stylesheet" href="/setup/style.css">
+  <link rel="stylesheet" href="/setup/goals.css">
+  <script defer src="/setup/goal-editor.js"></script>
   <script defer src="/setup/app.js"></script>
 </head>
 <body>
@@ -38,16 +40,20 @@
         <div class="task-section"><h2>Утро</h2><p class="fine">Пять обязательных дел. Названия можно изменить под ваш распорядок. Они открывают зачёт следующих дел.</p><div id="morning-tasks"></div></div>
         <div class="task-section"><div class="section-title"><h2>Дневные дела</h2><button type="button" id="add-afternoon" class="secondary">＋ Добавить</button></div><p class="fine">Дневная норма — 7 очков вместе с утренними делами. Обычные дела сверх нормы дают 5 минут, дела с мусором и посудомойкой — 10.</p><div id="afternoon-tasks"></div></div>
         <div class="task-section"><div class="section-title"><h2>Супердела</h2><button type="button" id="add-rewards" class="secondary">＋ Добавить</button></div><p class="fine">Укажите минуты за выполнение. После дневного лимита в 30 минут та же ставка пополняет копилку жетонами.</p><div id="reward-tasks"></div></div>
+        <div class="task-section"><div class="section-title"><h2>Повторяемые дела</h2><button type="button" id="add-repeatables" class="secondary">＋ Добавить повторяемое дело</button></div><p class="fine">Можно выполнить несколько раз за день. Каждое выполнение учитывается отдельно и приносит указанную ставку после дневной нормы.</p><div id="repeatable-tasks"></div></div>
         <div class="task-section"><h2>Повторяемое творческое дело</h2><label for="video-title">Что можно делать несколько раз</label><input id="video-title" maxlength="180"><label for="video-rate">Минуты / жетоны за выполнение</label><input id="video-rate" type="number" min="1" max="120" step="1"></div>
       </section>
       <section class="panel step" data-step="2" hidden>
-        <p class="eyebrow">ШАГ 3 ИЗ 4</p><h1>К чему идём вместе?</h1>
-        <p class="lead">Например, семейный киновечер, поход в парк или выбор игры на выходные.</p>
+        <p class="eyebrow">ШАГ 3 ИЗ 4</p><h1>Цели для каждого ребёнка</h1>
+        <p class="lead">Еженедельные и ежемесячные цели начинаются заново автоматически. Индивидуальная цель — разовая, со своим сроком. Отсчёт каждой новой цели начинается при сохранении.</p>
+        <div id="goal-editor"></div>
+        <details><summary>Общая накопительная серия — дополнительные настройки</summary>
         <label for="goal-title">Название цели</label><input id="goal-title" maxlength="80" value="Семейный киновечер">
         <label for="goal-reward">Что ждёт в конце</label><input id="goal-reward" maxlength="80" value="Выбрать фильм на выходные">
         <div class="two-columns"><div><label for="goal-points">Очков за день</label><input id="goal-points" type="number" min="1" max="50" value="10"></div><div><label for="goal-days">Зачтённых дней</label><input id="goal-days" type="number" min="1" max="30" value="10"></div></div>
-        <label class="check"><input id="goal-skip" type="checkbox" checked><span>Можно пропустить один день в серии</span></label>
+        <label for="goal-skips">Можно пропустить дней в серии</label><input id="goal-skips" type="number" min="0" max="30" step="1" value="1">
         <aside class="tip">У каждого ребёнка свой прогресс. Лишние очки переходят на следующий день. Дневные результаты и общая цель видны всей семье.</aside>
+        </details>
       </section>
       <section class="panel step" data-step="3" hidden>
         <p class="eyebrow">ШАГ 4 ИЗ 4</p><h1>Вход только для родителей</h1>

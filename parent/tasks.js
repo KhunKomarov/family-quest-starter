@@ -12,7 +12,8 @@
   const descriptions = {
     morning: "До школы пять общих дел. Новое постоянное дело попадёт в раздел «После школы».",
     afternoon: "Ставка дневного дела показана в списке. После выполнения нормы дело приносит минуты или жетоны.",
-    rewards: "Дело засчитывается после нормы и восстановления пропусков. Когда накоплено 30 минут, следующее дело даёт столько же жетонов, сколько стоило бы минут."
+    rewards: "Дело засчитывается после нормы и восстановления пропусков. Когда накоплено 30 минут, следующее дело даёт столько же жетонов, сколько стоило бы минут.",
+    repeatables: 'Можно выполнять несколько раз за день. Каждое выполнение приносит свою ставку после дневной нормы, а после 30 минут — жетоны.'
   };
   let snapshot;
   let pending;
@@ -42,7 +43,7 @@
 
   function renderCategory() {
     const category = section.value;
-    const reward = category === "rewards";
+    const reward = category === "rewards" || category === 'repeatables';
     rate.disabled = !reward;
     rate.required = reward;
     get("#catalog-rate-field").hidden = !reward;
@@ -51,7 +52,8 @@
     const rows = new Map();
     children.forEach((child, index) => {
       const menu = menuFor(index, snapshot.today, snapshot.catalog);
-      const tasks = reward ? menu.rewards.concat([["video", menu.video.title, videoRate(menu)]]) : menu[category];
+      const tasks = category === 'repeatables' ? (menu.repeatables || []).concat([['video', menu.video.title, videoRate(menu)]])
+        : reward ? menu.rewards : menu[category];
       for (const [id, name, minutes] of tasks) {
         let label = reward ? name + " · " + minutes + " мин / " + minutes + " жет." : name;
         if (category === "afternoon") {
@@ -100,7 +102,7 @@
       status.textContent = "Введи название и выбери хотя бы одного ребёнка.";
       return;
     }
-    if (fields.section === "rewards") fields.rate = rate.valueAsNumber;
+    if (fields.section === "rewards" || fields.section === 'repeatables') fields.rate = rate.valueAsNumber;
     const signature = JSON.stringify(fields);
     if (!pending || pending.signature !== signature || pending.body.day !== snapshot.today) {
       const id = Array.from(crypto.getRandomValues(new Uint8Array(16)),

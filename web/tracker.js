@@ -94,6 +94,10 @@
   }
 
   function applyJournalSnapshot(snapshot, projected) {
+    if (snapshot.familyConfig) Object.assign(window.FamilyConfig, snapshot.familyConfig);
+    state.goalCells = projected.cells;
+    state.goalAdjustments = snapshot.adjustments || [];
+    state.periodGoals = snapshot.periodGoals || [];
     for (let day = snapshot.start; day <= snapshot.today; day++) {
       if (projected.records[day]) state.records[day] = projected.records[day];
       else delete state.records[day];
@@ -186,6 +190,7 @@
   }
 
   function paintLongGoal(first, last) {
+    window.FamilyPeriodGoals.render(get('[data-calendar-goals]'), personalGoals(), children.map(child => child.name));
     const goal = state.longGoal;
     const section = get("[data-long-goal-section]");
     const line = get("[data-long-goal-line]");
@@ -195,7 +200,7 @@
     line.style.setProperty("--long-goal-threshold", chartHeight(goal.points) + "%");
     text("#family-long-goal-heading", goal.title || "Накопительная цель");
     line.firstElementChild.textContent = "Цель · " + goal.points;
-    const series = state.today >= goal.skipSince ? " дней · можно пропустить 1 день" : " дней подряд";
+    const series = state.today >= goal.skipSince ? ' дней · допустимо пропусков: ' + (goal.allowedSkips === undefined ? 1 : goal.allowedSkips) : " дней подряд";
     text("[data-long-goal-rule]", (first === monday(state.today) ? "" : "Прогресс на сегодня · ")
       + goal.points + " очков в день · " + goal.days + series + " → " + (goal.reward || "приз семьи") + " · фиолетовый — перенос");
     replace(get("[data-long-goal-rows]"), children.map(({name, color}, index) => {
@@ -205,6 +210,18 @@
       if (!progress.earned) row.append(element("small", "cal-long-goal-today", longGoalTodayText(progress, goal)));
       return row;
     }));
+  }
+
+  function personalGoals() {
+    const now = demo ? state.today * 86400000 - window.FamilyConfig.utcOffsetMinutes * 60000 +
+      Number(currentTime().slice(0,2)) * 3600000 + Number(currentTime().slice(3)) * 60000 : Date.now();
+    if (state.goalCells) return window.FamilyPeriodGoals.fromJournal(window.FamilyConfig, now, state.first,
+      state.goalCells, state.goalAdjustments, state.catalog, state.periodGoals);
+    return window.FamilyPeriodGoals.evaluate(window.FamilyConfig, now, state.first, (day, child) => {
+      const row = getDay(day)[child], entry = row.entry;
+      return {score: row.score, morningMet: entry ? row.morningMet : row.score >= 5,
+        extra: entry ? entry.rewards.length + entry.videos + Object.values(entry.repeatables || {}).reduce((a,b)=>a+b,0) : 0};
+    });
   }
 
   function firstCalendarDay() {
@@ -299,8 +316,9 @@
     const button = element("button", "quest-task");
     button.type = "button";
     button.dataset[kind] = id;
-    if (kind !== "video") button.setAttribute("aria-pressed", "false");
-    const box = element("span", kind === "video" ? "quest-box quest-add" : "quest-box", kind === "video" ? "+" : "");
+    const repeated = kind === 'video' || kind === 'repeat';
+    if (!repeated) button.setAttribute("aria-pressed", "false");
+    const box = element("span", repeated ? "quest-box quest-add" : "quest-box", repeated ? "+" : "");
     box.setAttribute("aria-hidden", "true");
     const name = element("span", "quest-task-name", title);
     const value = element("span", "quest-value");
@@ -330,10 +348,16 @@
     const video = makeTask("video", menu.video.title, "video");
     const videoCount = element("small", "quest-detail");
     video.name.appendChild(videoCount);
+    const repeatables = (menu.repeatables || []).map(([id, title, rate]) => {
+      const task = { ...makeTask(id, title, 'repeat'), id, rate };
+      task.count = element('small', 'quest-detail');
+      task.name.appendChild(task.count);
+      return task;
+    });
     replace(lists[0], morning.map(task => task.button));
     replace(lists[1], afternoon.map(task => task.button));
-    replace(lists[2], rewards.map(task => task.button).concat(video.button));
-    view = { menu, morning, afternoon, rewards, video, videoCount, daily: [], dailyKey: null };
+    replace(lists[2], rewards.map(task => task.button).concat(video.button, repeatables.map(task => task.button)));
+    view = { menu, morning, afternoon, rewards, video, videoCount, repeatables, daily: [], dailyKey: null };
   }
 
   function openProfile(index) {
@@ -423,6 +447,12 @@
     view.video.value.textContent = offer(videoRate(view.menu), minutes);
     view.videoCount.textContent = " · за неделю: " + stats.videos
       + (waitingVideos ? (met ? " · после восстановления: " : " · после дневной нормы: ") + waitingVideos : "");
+    view.repeatables.forEach(task => {
+      task.button.setAttribute('aria-disabled', String(!open));
+      task.value.textContent = offer(task.rate, minutes);
+      task.count.textContent = ' · сегодня: ' + (entry.repeatables[task.id] || 0) +
+        (!rewardsOpen ? (met ? ' · после восстановления' : ' · после дневной нормы') : '');
+    });
     get("[data-norm-number]").firstChild.nodeValue = score + " ";
     get("[data-norm-number] small").textContent = "/ " + target + " очков";
     const track = get("[data-norm-track]");
@@ -479,6 +509,7 @@
         + (progress.earned ? "" : " · " + longGoalTodayText(progress, goal));
       replace(goalLabel, [element("div", "", summary), longGoalTrack(progress, goal)]);
     }
+    window.FamilyPeriodGoals.render(get('[data-profile-goals]'), personalGoals().filter(goal => goal.child === index), children.map(child => child.name));
     const bonus = weekend(index);
     const available = weekday(state.today) === 5 ? bonus.saturday : bonus.sunday;
     const weekendLabel = get("[data-weekend-label]");
@@ -562,6 +593,13 @@
         const rewardIds = new Set(menu.rewards.map(([id]) => id));
         entry.rewards = Array.from(new Set((Array.isArray(raw.rewards) ? raw.rewards : []).filter(id => rewardIds.has(id))));
         const savedOrder = Array.isArray(raw.order) ? raw.order : [];
+        const repeatCounts = {};
+        (menu.repeatables || []).forEach(([id]) => {
+          const recorded = savedOrder.filter(mark => mark === 'repeat:' + id).length;
+          const count = raw.repeatables && raw.repeatables[id];
+          entry.repeatables[id] = Number.isSafeInteger(count) ? Math.max(0, Math.min(count, Math.max(5, recorded))) : recorded;
+          repeatCounts[id] = entry.repeatables[id];
+        });
         const storedVideos = savedOrder.filter(mark => mark === "video").length;
         entry.videos = Number.isSafeInteger(raw.videos) ? Math.max(0, Math.min(raw.videos, Math.max(5, storedVideos))) : storedVideos;
         entry.remarks = Number.isSafeInteger(raw.remarks) ? Math.max(0, raw.remarks) : 0;
@@ -570,6 +608,12 @@
         let videos = entry.videos;
         let parents = entry.parentPoints;
         entry.order = savedOrder.filter(mark => {
+          if (typeof mark === 'string' && mark.startsWith('repeat:')) {
+            const id = mark.slice(7);
+            if (!repeatCounts[id]) return false;
+            repeatCounts[id]--;
+            return true;
+          }
           if (mark === "parent") {
             if (!parents) return false;
             parents--;
@@ -579,7 +623,7 @@
           if (!videos) return false;
           videos--;
           return true;
-        }).concat(Array.from(remaining), Array(videos).fill("video"));
+        }).concat(Array.from(remaining), Array(videos).fill("video"), Object.entries(repeatCounts).flatMap(([id, count]) => Array(count).fill('repeat:' + id)));
         return entry;
       });
     }
@@ -670,6 +714,11 @@
       if (entry.rewards.includes(id)) return;
       entry.rewards.push(id);
       entry.order.push(task);
+    } else if (button.hasAttribute('data-repeat')) {
+      const id = button.dataset.repeat;
+      task = 'repeat:' + id;
+      entry.repeatables[id] = (entry.repeatables[id] || 0) + 1;
+      entry.order.push(task);
     } else if (button.hasAttribute("data-video")) {
       task = "video";
       entry.videos++;
@@ -716,6 +765,14 @@
       return true;
     }
     if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return false;
+    const personalCards = Array.from((state.active === null ? get('[data-calendar-goals]') : get('[data-profile-goals]')).querySelectorAll('[data-goal-focus]'));
+    const goalIndex = personalCards.indexOf(current);
+    if (goalIndex >= 0) {
+      const destination = key === 'ArrowDown' ? personalCards[goalIndex + 1] || (state.active === null ? reportButton : tabs[state.tab])
+        : key === 'ArrowUp' ? personalCards[goalIndex - 1] || (state.active === null ? profiles[profiles.length - 1] : tabs[state.tab])
+        : state.active === null ? profiles[0] : tabs[state.tab];
+      focus(destination); return true;
+    }
     let next;
     if (state.active === null) {
       const i = profiles.indexOf(current);
@@ -724,7 +781,7 @@
       if (i >= 0) {
         if (key === "ArrowUp") next = i === 0 ? availableWeeks[0] || profiles[0] : profiles[i - 1];
         if (key === "ArrowLeft") next = profiles[Math.max(0, i - 1)];
-        if (key === "ArrowDown") next = profiles[i + 1] || reportButton;
+        if (key === "ArrowDown") next = profiles[i + 1] || personalCards[0] || reportButton;
         if (key === "ArrowRight") next = availableWeeks[0] || (!advance.hidden ? advance : reportButton);
       } else if (weekIndex >= 0) {
         if (key === "ArrowLeft") next = availableWeeks[weekIndex - 1] || profiles[0];
@@ -735,6 +792,7 @@
       const tasks = Array.from(lists[state.tab].querySelectorAll("button"));
       const i = tasks.indexOf(current);
       const tab = tabs.indexOf(current);
+      if (key === 'ArrowRight' && i >= 0 && personalCards.length) { focus(personalCards[0]); return true; }
       if (tab >= 0 && (key === "ArrowLeft" || key === "ArrowRight")) {
         const destination = tab + (key === "ArrowLeft" ? -1 : 1);
         if (tabs[destination] && !tabs[destination].hidden) { tabs[destination].click(); next = tabs[destination]; }

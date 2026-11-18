@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#102c27">
   <link rel="manifest" href="/parent/manifest.webmanifest">
   <link rel="stylesheet" href="/parent/style.css">
+  <link rel="stylesheet" href="/parent/goals.css">
   <title>Семейный квест · Для родителей</title>
 </head>
 <body>
@@ -21,6 +22,7 @@
       <div class="account-links">
         <p id="account" class="account"></p>
         <a class="family-link" href="/parent/tasks/">Настройки дел</a>
+        <a class="family-link" href="/parent/goals/">Цели детей</a>
         <a class="family-link" href="/parent/connect/">Подключить экран</a>
       </div>
     </section>
@@ -30,6 +32,7 @@
         <header class="section-head week-head"><div><h2 id="week-title">Эта неделя</h2><p id="week-range"></p></div><div class="legend"><span>Черта — норма</span><span class="cat-key" role="img" aria-label="Грустный котик, замечание"><b class="bar-red-key" aria-hidden="true"></b><span aria-hidden="true">😿</span></span><span class="cat-key" role="img" aria-label="Радостный котик, похвала"><b class="bar-praise-key" aria-hidden="true"></b><span aria-hidden="true">😺</span></span></div></header>
         <div class="chart" id="week-chart" aria-label="Дневной прогресс"></div>
         <div id="week-totals" class="week-totals"></div>
+        <div id="period-goals" class="period-goal-list" hidden></div>
         <section id="long-goal-goal" class="long-goal-goal" aria-labelledby="long-goal-heading" hidden>
           <h3 id="long-goal-heading">Накопительная цель</h3>
           <p id="long-goal-rule" class="meta"></p>
@@ -99,6 +102,7 @@
   <script defer src="/parent/family-config.js"></script>
   <script defer src="/parent/rules.js"></script>
   <script defer src="/parent/projection.js"></script>
+  <script defer src="/parent/period-goals.js"></script>
   <script defer src="/parent/app.js"></script>
 </body>
 </html>

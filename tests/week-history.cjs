@@ -51,10 +51,10 @@ test("TV week navigation preserves the current streak, wallet and journal", asyn
       { withSaturday: false, sunday: 19, expected: "2 / 10 дней · +5 на завтра", todayFill: "100%", tomorrowFill: "50%" },
       { withSaturday: false, sunday: 19, monday: 0, expected: "1 / 10 дней", todayFill: "90%" },
       { withSaturday: false, sunday: 20, monday: 0, expected: "2 / 10 дней" },
-      { withSaturday: false, skipSince: today, sunday: 19, expected: "2 / 10 дней · +5 на завтра · есть 1 пропуск" },
-      { withSaturday: false, skipSince: today - 2, expected: "2 / 10 дней · пропуск использован" },
-      { withSaturday: false, skipSince: today - 2, sunday: 0, monday: 10, expected: "1 / 10 дней · есть 1 пропуск" },
-      { withSaturday: false, skipSince: today - 2, monday: 0, expected: "2 / 10 дней · пропуск использован" }
+      { withSaturday: false, skipSince: today, sunday: 19, expected: "2 / 10 дней · +5 на завтра · пропуски: 0/1" },
+      { withSaturday: false, skipSince: today - 2, expected: "2 / 10 дней · пропуски: 1/1" },
+      { withSaturday: false, skipSince: today - 2, sunday: 0, monday: 10, expected: "1 / 10 дней · пропуски: 0/1" },
+      { withSaturday: false, skipSince: today - 2, monday: 0, expected: "2 / 10 дней · пропуски: 1/1" }
     ]) {
       const page = await browser.newPage({ viewport: { width: 800, height: 480 } });
       await page.clock.setFixedTime(date);

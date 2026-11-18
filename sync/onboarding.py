@@ -11,7 +11,7 @@ import re
 import sqlite3
 import time
 
-from configuration import validate_config, validate_catalog
+from configuration import validate_config, validate_catalog, start_new_goals
 
 
 class InvalidInvitation(ValueError):
@@ -93,7 +93,7 @@ def normalize_photo(encoded):
 def validate_registration(body):
     if not isinstance(body, dict) or body.get('consent') is not True:
         raise ValueError('hosting consent required')
-    config = validate_config(body.get('config'))
+    config = start_new_goals(validate_config(body.get('config')), None, int(time.time() * 1000))
     catalog = [[0, body.get('menus')]]
     validate_catalog(catalog, len(config['profiles']))
     people = body.get('parents')
