@@ -103,7 +103,7 @@ test('invited family completes setup with a photo, own tasks, codes and a privat
     const repeat=screen.locator('[data-repeat]');
     for(let index=0;index<4;index++)await repeat.click();
     await screen.getByText(/сегодня: 4/).waitFor();
-    await screen.waitForFunction(()=>document.querySelector('[data-wallet]').textContent==='12 жет.');
+    await screen.waitForFunction(()=>document.querySelector('[data-wallet]').textContent.trim()==='12' && document.querySelector('[data-wallet] svg[aria-label=монет]'));
     assert.equal(await screen.locator('[data-profile-goals] .period-goal').count(),2);
     assert.match(await screen.locator('[data-profile-goals] .period-goal.weekly').textContent(),/1 \/ 3 шагов/);
     await screen.close();

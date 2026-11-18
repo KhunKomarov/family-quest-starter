@@ -124,7 +124,7 @@ class Handler(BaseHTTPRequestHandler):
             if data is None:
                 data = (self.server.assets / 'web' / f'avatar-{index % 3 + 1}.png').read_bytes()
             self.send_content(200, 'image/png', data)
-        elif path in ("/parent/app.js", "/parent/tasks.js", "/parent/rules.js", "/parent/projection.js"):
+        elif path in ("/parent/app.js", "/parent/tasks.js", "/parent/rules.js", "/parent/projection.js", "/parent/currency.js"):
             name = path.split("/")[-1]
             directory = "parent" if name in ("app.js", "tasks.js") else "web"
             self.asset(self.server.assets / directory / name, "text/javascript")

@@ -26,6 +26,10 @@
         <a class="family-link" href="/parent/connect/">Подключить экран</a>
       </div>
     </section>
+      <section class="panel help-entry" aria-labelledby="help-entry-title">
+        <div><h2 id="help-entry-title">Как настроить и пользоваться</h2><p class="meta">Короткое видео, установка на телевизор и в машину — всё по шагам.</p></div>
+        <a class="help-video" href="https://khunkomarov.github.io/family-quest-starter/guide/" target="_blank" rel="noopener noreferrer">▶ Видеоинструкция</a>
+      </section>
     <p id="status" class="status" role="status">Загружаем журнал…</p>
     <div id="dashboard" hidden>
       <section class="panel goal-entry" aria-labelledby="goal-entry-title">
@@ -95,7 +99,7 @@
       <h2 id="action-title"></h2>
       <p id="action-summary"></p>
       <div id="action-amount-wrap" hidden>
-        <label for="action-amount">Сумма в жетонах</label>
+        <label for="action-amount">Сумма в монетах</label>
         <input id="action-amount" type="number" inputmode="numeric" min="1" step="1" disabled>
       </div>
       <div id="action-input-wrap">
@@ -107,6 +111,7 @@
     </form>
   </dialog>
   <script defer src="/parent/family-config.js"></script>
+  <script defer src="/parent/currency.js"></script>
   <script defer src="/parent/rules.js"></script>
   <script defer src="/parent/projection.js"></script>
   <script defer src="/parent/period-goals.js"></script>

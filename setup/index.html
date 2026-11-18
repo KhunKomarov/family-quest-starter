@@ -21,6 +21,7 @@
       <p id="invite-status" role="status">Проверяем приглашение…</p>
       <button id="begin" class="primary" disabled>Настроить нашу семью <span aria-hidden="true">→</span></button>
       <p id="existing-family" hidden><a class="secondary" href="/parent/">Уже зарегистрировались? Открыть кабинет</a></p>
+      <p><a href="https://khunkomarov.github.io/family-quest-starter/guide/" target="_blank" rel="noopener noreferrer">▶ Видеоинструкция · телевизор и машина</a></p>
       <p class="fine">Сервер уже подготовлен. Покупать или настраивать его не нужно.</p>
     </section>
     <form id="wizard" hidden novalidate>
@@ -39,9 +40,9 @@
         <label for="task-child">Чьи дела настраиваем</label><select id="task-child"></select>
         <div class="task-section"><h2>Утро</h2><p class="fine">Пять обязательных дел. Названия можно изменить под ваш распорядок. Они открывают зачёт следующих дел.</p><div id="morning-tasks"></div></div>
         <div class="task-section"><div class="section-title"><h2>Дневные дела</h2><button type="button" id="add-afternoon" class="secondary">＋ Добавить</button></div><p class="fine">Дневная норма — 7 очков вместе с утренними делами. Обычные дела сверх нормы дают 5 минут, дела с мусором и посудомойкой — 10.</p><div id="afternoon-tasks"></div></div>
-        <div class="task-section"><div class="section-title"><h2>Супердела</h2><button type="button" id="add-rewards" class="secondary">＋ Добавить</button></div><p class="fine">Укажите минуты за выполнение. После дневного лимита в 30 минут та же ставка пополняет копилку жетонами.</p><div id="reward-tasks"></div></div>
+        <div class="task-section"><div class="section-title"><h2>Супердела</h2><button type="button" id="add-rewards" class="secondary">＋ Добавить</button></div><p class="fine">Укажите минуты за выполнение. После дневного лимита в 30 минут та же ставка пополняет копилку монетами.</p><div id="reward-tasks"></div></div>
         <div class="task-section"><div class="section-title"><h2>Повторяемые дела</h2><button type="button" id="add-repeatables" class="secondary">＋ Добавить повторяемое дело</button></div><p class="fine">Можно выполнить несколько раз за день. Каждое выполнение учитывается отдельно и приносит указанную ставку после дневной нормы.</p><div id="repeatable-tasks"></div></div>
-        <div class="task-section"><h2>Повторяемое творческое дело</h2><label for="video-title">Что можно делать несколько раз</label><input id="video-title" maxlength="180"><label for="video-rate">Минуты / жетоны за выполнение</label><input id="video-rate" type="number" min="1" max="120" step="1"></div>
+        <div class="task-section"><h2>Повторяемое творческое дело</h2><label for="video-title">Что можно делать несколько раз</label><input id="video-title" maxlength="180"><label for="video-rate">Минуты / монеты за выполнение</label><input id="video-rate" type="number" min="1" max="120" step="1"></div>
       </section>
       <section class="panel step" data-step="2" hidden>
         <p class="eyebrow">ШАГ 3 ИЗ 4</p><h1>Цели на неделю, месяц и свой срок</h1>

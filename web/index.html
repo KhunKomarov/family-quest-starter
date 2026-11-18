@@ -4,7 +4,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
 <link rel="stylesheet" href="goals.css">
 <title>Семейный квест</title>
-<style>html,body{margin:0;background:#0b1731}body{padding:12px}</style></head><body>
+<style>.demo-guide{display:block;padding:12px 16px;margin-bottom:12px;border-radius:12px;background:#f3ce75;color:#17382d;font:700 16px/1.4 system-ui;text-decoration:none}.demo-guide[hidden]{display:none}
+.quest-coin { display: inline-block; vertical-align: -.13em; flex: none; overflow: visible; }
+html,body{margin:0;background:#0b1731}body{padding:12px}</style></head><body>
+<a data-demo-guide hidden href="guide/" class="demo-guide">▶ Видеоинструкция · установка на ТВ и в машину</a>
 <section id="family-tv" aria-label="Семейный квест">
   <div data-calendar>
     <header class="cal-hero">
@@ -92,7 +95,7 @@
         <div class="quest-list"></div>
       </section>
       <section id="quest-bonus" role="tabpanel" aria-labelledby="quest-tab-bonus" hidden>
-        <p class="quest-gate" data-gate-message>Дела можно отмечать сейчас. Минуты и жетоны начислятся после дневной нормы.</p>
+        <p class="quest-gate" data-gate-message>Дела можно отмечать сейчас. Минуты и монеты начислятся после дневной нормы.</p>
         <div class="quest-list"></div>
       </section>
       <section id="quest-daily" role="tabpanel" aria-labelledby="quest-tab-daily" hidden>
@@ -118,7 +121,7 @@
       <section class="quest-meter quest-money">
         <div class="quest-meter-title"><h2>Копилка</h2><strong data-wallet>—</strong></div>
         <p class="quest-detail quest-payout" data-cash-earned></p>
-        <p class="quest-detail" data-cash-next>После 30 минут каждое дело даёт столько жетонов, сколько стоило минут</p>
+        <p class="quest-detail" data-cash-next>После 30 минут каждое дело даёт столько монет, сколько стоило минут</p>
       </section>
       <section class="quest-meter quest-remarks" aria-labelledby="quest-remarks-title">
         <div class="quest-meter-title"><h2 id="quest-remarks-title">За сегодня</h2><div class="quest-cats">
@@ -409,6 +412,7 @@
 </style>
 
 <script src="family-config.js"></script>
+<script src="currency.js"></script>
 <script src="rules.js"></script>
 <script src="projection.js"></script>
 <script src="period-goals.js"></script>

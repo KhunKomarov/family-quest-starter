@@ -35,7 +35,7 @@ if [[ ! -f "$key" ]]; then
     -storepass:file "$password" -alias family-quest -keyalg RSA -keysize 3072 \
     -validity 10000 -dname "CN=Family Quest")
 fi
-cp "$root/web/"* "$work/assets/"
+cp -R "$root/web/." "$work/assets/"
 if [[ -n "${1:-}" ]]; then
   cp "$1" "$work/assets/sync.properties"
 fi

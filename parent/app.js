@@ -421,7 +421,7 @@
     if (body.action === "wallet-payout") {
       const amount = actionAmount.valueAsNumber;
       if (!Number.isSafeInteger(amount) || amount < 1) {
-        get("#action-error").textContent = "Введи целое число жетонов больше нуля.";
+        get("#action-error").textContent = "Введи целое число монет больше нуля.";
         return;
       }
       body.amount = amount;

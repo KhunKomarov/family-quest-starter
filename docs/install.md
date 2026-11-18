@@ -64,3 +64,5 @@ python3 sync/server.py --preview --database .local/preview/journal.sqlite3 \
 ```
 
 Откройте `http://127.0.0.1:8765/parent/` и используйте тестовый код из частного `parents.json`. Для одного только детского демо достаточно команды просмотра из [README](../README.md).
+
+Для подключения автомобиля выполните отдельную [пошаговую установку в машину](car-install.md).
