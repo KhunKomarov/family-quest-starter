@@ -87,8 +87,10 @@ test('the child screen renders one, two and six configured profiles',async()=>{
       await page.goto(pathToFileURL(join(work,'web/index.html')).href+'?demo=1');
       await page.locator('[data-child="0"]').waitFor();
       assert.equal(await page.locator('.cal-profiles [data-child]').count(),count);
+      await page.waitForFunction(()=>Array.from(document.querySelectorAll('.cal-profiles img')).every(image=>image.complete&&image.naturalWidth>0));
       await page.locator('[data-child="'+(count-1)+'"]').click();
       await page.getByRole('heading',{name:'Профиль '+count,exact:true}).waitFor();
+      assert.equal(await page.locator('[data-active-portrait]').evaluate(image=>image.complete&&image.naturalWidth>0),true);
       assert.deepEqual(errors,[]);await page.close();
     }
   }finally{await browser.close();rmSync(work,{recursive:true,force:true});}
