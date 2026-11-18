@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'">
+<title>Семейный квест</title>
+<style>html,body{margin:0;background:#0b1731}body{padding:12px}</style></head><body>
+<section id="family-tv" aria-label="Семейный квест">
+  <div data-calendar>
+    <header class="cal-hero">
+      <div class="cal-kicker" data-week-caption>◆ СЕМЕЙНЫЙ КАЛЕНДАРЬ</div>
+      <h1>Семейный <em>квест</em></h1>
+      <div class="cal-topline"><span data-day-caption>Сегодня</span><button type="button" data-advance hidden>Следующий день ›</button></div>
+      <nav class="cal-week-nav" aria-label="Выбор недели">
+        <button type="button" data-week-nav="-1" aria-label="Предыдущая неделя">‹</button>
+        <button type="button" data-week-nav="0">Текущая неделя</button>
+        <button type="button" data-week-nav="1" aria-label="Следующая неделя">›</button>
+        <span data-week-range role="status"></span>
+      </nav>
+    </header>
+    <div class="cal-main">
+      <nav class="cal-profiles" aria-label="Профили детей">
+        <button type="button" data-child="0" class="kid-orange" data-preview-focus><img alt="" src="avatar-1.png"><span><strong data-profile-name></strong><small data-child-score></small></span><i aria-hidden="true">›</i></button>
+        <button type="button" data-child="1" class="kid-green"><img alt="" src="avatar-2.png"><span><strong data-profile-name></strong><small data-child-score></small></span><i aria-hidden="true">›</i></button>
+        <button type="button" data-child="2" class="kid-red"><img alt="" src="avatar-3.png"><span><strong data-profile-name></strong><small data-child-score></small></span><i aria-hidden="true">›</i></button>
+      </nav>
+      <section class="cal-chart" aria-labelledby="family-chart-heading">
+        <div class="cal-heading"><h2 id="family-chart-heading">Календарь дел</h2><span class="cal-legend"><span class="cal-cat-key" role="img" aria-label="Грустный котик, замечание"><b class="cal-red-key" aria-hidden="true"></b><span aria-hidden="true">😿</span></span><span class="cal-cat-key" role="img" aria-label="Радостный котик, похвала"><b class="cal-praise-key" aria-hidden="true"></b><span aria-hidden="true">😺</span></span></span></div>
+        <div class="cal-plot">
+          <div class="cal-area" data-cal-bars></div>
+          <div class="cal-standard"><span>Обычная норма · 7</span></div>
+          <div class="cal-standard cal-long-goal-line" data-long-goal-line hidden><span></span></div>
+        </div>
+        <div class="cal-dates" data-cal-dates></div>
+      </section>
+    </div>
+    <section class="cal-long-goal" data-long-goal-section hidden aria-labelledby="family-long-goal-heading">
+      <div class="cal-heading"><h2 id="family-long-goal-heading">Накопительная цель</h2><span data-long-goal-rule></span></div>
+      <div class="cal-long-goal-rows" data-long-goal-rows></div>
+    </section>
+    <section class="cal-week" aria-labelledby="family-week-heading">
+      <div class="cal-heading"><h2 id="family-week-heading">Недельный прогресс</h2><span>↺✓ Восстановлено</span></div>
+      <div class="cal-week-content">
+        <div data-cal-week class="cal-week-table"></div>
+        <div class="cal-prizes">
+          <div><small>Суббота · норма 5 из 5 будней</small><strong>1 час гаджетов</strong><small data-weekend-saturday hidden></small></div>
+          <div><small>Воскресенье · плюс норма в субботу</small><strong>1 час гаджетов</strong><small data-weekend-sunday hidden></small></div>
+        </div>
+      </div>
+    </section>
+    <div class="cal-footer">
+      <span class="cal-keys"><kbd>↑ ↓</kbd> Выбор профиля <kbd>OK</kbd> Открыть</span>
+      <span data-sync-status hidden aria-live="polite"></span>
+      <div class="cal-actions">
+        <button type="button" data-morning-button aria-expanded="false" aria-controls="family-morning">Утренний отчёт</button>
+      </div>
+    </div>
+    <section id="family-morning" class="cal-morning" hidden aria-labelledby="family-morning-heading">
+      <div class="cal-heading"><h2 id="family-morning-heading">Утренний отчёт</h2><span>По времени семьи</span></div>
+      <div class="cal-morning-controls">
+        <input type="hidden" value="07:10" data-cutoff>
+        <label data-demo-clock hidden>Время отметки в макете <input type="time" value="06:50" data-demo-time></label>
+      </div>
+      <ul data-morning-rows aria-live="polite"></ul>
+    </section>
+    <p class="cal-sr" data-calendar-announcement aria-live="polite"></p>
+  </div>
+  <div data-profile-screen hidden>
+  <header class="quest-hero">
+    <div class="quest-brand"><button type="button" data-back>‹ Календарь</button> Семейный квест</div>
+    <div class="quest-person">
+      <img data-active-portrait alt="" width="64" height="64">
+      <div><h1 data-active-name></h1><p data-active-date>Сегодня</p></div>
+    </div>
+  </header>
+
+  <div class="quest-main">
+    <div class="quest-board">
+      <div class="quest-tabs" role="tablist" aria-label="Виды дел">
+        <button type="button" id="quest-tab-base" role="tab" aria-selected="true" aria-controls="quest-base">До школы <span data-base-tab></span></button>
+        <button type="button" id="quest-tab-day" role="tab" aria-selected="false" aria-controls="quest-day">После школы <span data-day-tab></span></button>
+        <button type="button" id="quest-tab-bonus" role="tab" aria-selected="false" aria-controls="quest-bonus">Суперзадания <span data-bonus-tab>После нормы</span></button>
+        <button type="button" id="quest-tab-daily" role="tab" aria-selected="false" aria-controls="quest-daily">Задание дня <span data-daily-tab></span></button>
+      </div>
+      <p class="quest-gate" data-hours-message hidden>Отметки доступны за сегодня с 06:00 до 23:00.</p>
+      <section id="quest-base" role="tabpanel" aria-labelledby="quest-tab-base">
+        <div class="quest-list"></div>
+      </section>
+      <section id="quest-day" role="tabpanel" aria-labelledby="quest-tab-day" hidden>
+        <p class="quest-gate" data-day-gate>Отметки зачтутся после утреннего минимума.</p>
+        <div class="quest-list"></div>
+      </section>
+      <section id="quest-bonus" role="tabpanel" aria-labelledby="quest-tab-bonus" hidden>
+        <p class="quest-gate" data-gate-message>Дела можно отмечать сейчас. Минуты и жетоны начислятся после дневной нормы.</p>
+        <div class="quest-list"></div>
+      </section>
+      <section id="quest-daily" role="tabpanel" aria-labelledby="quest-tab-daily" hidden>
+        <p class="quest-detail" data-daily-empty>На сегодня заданий нет.</p>
+        <div class="quest-list"></div>
+      </section>
+    </div>
+
+    <aside class="quest-status" aria-label="Дневная норма и супер дела" aria-live="polite" aria-atomic="true">
+      <section class="quest-meter quest-norm">
+        <div class="quest-meter-title"><h2>Дневная норма</h2><span class="quest-medal" aria-hidden="true">◆</span></div>
+        <p class="quest-number" data-norm-number>0 <small>/ 7 очков</small></p>
+        <div class="quest-progress" data-norm-track role="progressbar" aria-label="Дневная норма" aria-valuemin="0" aria-valuemax="7" aria-valuenow="0"></div>
+        <p class="quest-next" data-norm-next></p><p class="quest-detail quest-norm-remarks" data-norm-remarks hidden></p><p class="quest-detail" data-recovery hidden></p><p class="quest-detail" data-raised hidden></p>
+      </section>
+      <section class="quest-meter quest-gadget">
+        <div class="quest-meter-title"><h2>Экранное время</h2></div>
+        <p class="quest-number" data-minutes-number>0 <small>/ 30 мин</small></p>
+        <div class="quest-minute-track" data-minute-track role="progressbar" aria-label="Минуты экранного времени" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><span></span></div>
+        <p class="quest-detail" data-minutes-next>Откроются после дневной нормы</p>
+        <p class="quest-detail" data-entertainment-cutoff hidden></p>
+      </section>
+      <section class="quest-meter quest-money">
+        <div class="quest-meter-title"><h2>Копилка</h2><strong data-wallet>—</strong></div>
+        <p class="quest-detail quest-payout" data-cash-earned></p>
+        <p class="quest-detail" data-cash-next>После 30 минут каждое дело даёт столько жетонов, сколько стоило минут</p>
+      </section>
+      <section class="quest-meter quest-remarks" aria-labelledby="quest-remarks-title">
+        <div class="quest-meter-title"><h2 id="quest-remarks-title">За сегодня</h2><div class="quest-cats">
+          <span aria-label="Похвала"><span aria-hidden="true">😺</span> <strong data-praise-count>0</strong></span>
+          <span aria-label="Замечания"><span aria-hidden="true">😿</span> <strong data-remarks-count>0</strong></span>
+        </div></div>
+        <p class="quest-detail">Каждый радостный котик добавляет 1 очко, каждый грустный снимает 1.</p>
+      </section>
+    </aside>
+  </div>
+  <footer class="quest-footer">
+    <div class="quest-long-goal" data-quest-long-goal hidden></div>
+    <div class="quest-week"><span class="quest-week-dot" aria-hidden="true"></span> Норма за будни <strong data-week></strong><span class="quest-week-reward" data-weekend-label>5 из 5 → 1 час гаджетов в субботу</span></div>
+    <div class="quest-keys" aria-label="Стрелки для выбора, Enter для отметки"><kbd>↑ ↓ ← →</kbd> Выбор <kbd>OK</kbd> Отметить <kbd>Esc</kbd> Назад</div>
+    <span data-sync-status hidden aria-live="polite"></span>
+  </footer>
+  </div>
+</section>
+<style>
+  #family-tv {
+    color-scheme: dark;
+    --quest-text: #f5f8ff;
+    --quest-muted: #bfceeb;
+    --quest-gold: #ffda89;
+    --quest-blue: #a9d3ff;
+    --quest-green: #a4efc0;
+    color: var(--quest-text);
+    font: 500 15px/1.32 "Avenir Next", "Segoe UI", Arial, sans-serif;
+    background: #0b1731;
+    border: 1px solid #344977;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  #family-tv, #family-tv * { box-sizing: border-box; }
+  #family-tv [hidden] { display: none !important; }
+  #family-tv p, #family-tv h1, #family-tv h2 { margin: 0; }
+  #family-tv .quest-hero {
+    background: linear-gradient(90deg, #10244c 10%, #112654aa 54%, #0d1b3d24) right 18% / cover no-repeat;
+    padding: 15px 22px 17px;
+    border-bottom: 1px solid #5472a66e;
+  }
+  #family-tv .quest-brand { color: var(--quest-gold); font-size: 12px; font-weight: 800; letter-spacing: .055em; }
+  #family-tv .quest-brand span { padding: 0 6px; color: var(--quest-muted); }
+  #family-tv .quest-person { display: flex; align-items: center; margin-top: 9px; }
+  #family-tv .quest-person img { width: 64px; height: 64px; flex-shrink: 0; margin-right: 18px; object-fit: cover; border: 2px solid var(--kid); border-radius: 13px; box-shadow: 0 0 16px #08112688; }
+  #family-tv .quest-person h1 { font-size: 38px; font-weight: 900; line-height: 1.04; color: var(--kid-text, var(--kid)); }
+  #family-tv .quest-person p { margin-top: 5px; color: #d6e4ff; font-size: 13px; font-weight: 650; }
+  #family-tv .quest-main { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(240px, 1fr); gap: 16px; padding: 16px 21px; align-items: start; }
+  #family-tv .quest-board, #family-tv .quest-status { min-width: 0; }
+  #family-tv .quest-tabs { display: grid; grid-template-columns: 1fr 1.25fr; gap: 7px; margin-bottom: 11px; }
+  #family-tv button { font: inherit; text-align: left; color: inherit; cursor: pointer; }
+  #family-tv button:disabled { cursor: default; }
+  #family-tv .quest-tabs button { display: flex; justify-content: space-between; align-items: center; gap: 5px 8px; flex-wrap: wrap; min-height: 44px; padding: 7px 10px; border-radius: 9px; border: 1px solid #4a62986d; background: #17284b; font-weight: 800; }
+  #family-tv .quest-tabs button[aria-selected="true"] { border-color: var(--kid); background: var(--kid-panel); }
+  #family-tv .quest-tabs button span { color: #d7e9ff; font-size: 11px; border-radius: 5px; padding: 2px 6px; white-space: nowrap; background: #0b193a85; }
+  #family-tv .quest-tabs [data-bonus-tab][data-open] { background: #125646; color: #baf6d2; }
+  #family-tv .quest-list { display: grid; gap: 7px; }
+  #family-tv .quest-task { display: grid; grid-template-columns: 22px minmax(0,1fr) auto 58px; align-items: center; gap: 8px; width: 100%; min-height: 51px; padding: 5px 8px 5px 10px; border: 1px solid #405c8b; border-radius: 9px; background: #1a2e53; font-weight: 740; }
+  #family-tv .quest-task-name { grid-column: 2; overflow-wrap: anywhere; }
+  #family-tv .quest-task-rate { display: block; margin-top: 2px; color: #b9cdeb; font-size: 11px; font-weight: 650; }
+  #family-tv .quest-task-picture { grid-column: 4; grid-row: 1; display: flex; align-items: center; justify-content: center; min-height: 38px; border: 1px solid #fff7e275; border-radius: 7px; color: #17294b; background: #f4e9cf; font: 24px/1 "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", sans-serif; letter-spacing: -1px; white-space: nowrap; }
+  #family-tv .quest-task-picture img { width: 26px; height: 28px; flex: 0 0 auto; }
+  #family-tv .quest-task-pair { gap: 2px; font-size: 19px; }
+  #family-tv .quest-task-pair img { width: 22px; }
+  #family-tv .quest-task[aria-pressed="true"] { border-color: #436879; background: #152e43; color: #d7e6f7; }
+  #family-tv .quest-task:hover:not([aria-disabled="true"]) { background: #244777; }
+  #family-tv button:focus-visible, #family-tv [data-preview-focus] { outline: 2px solid #ffdf9a; outline-offset: 1px; box-shadow: 0 0 10px #f0c57655; }
+  #family-tv .quest-task[aria-disabled="true"] { cursor: default; }
+  #family-tv .quest-task[aria-disabled="true"]:not([aria-pressed="true"]) { color: #c4d1eb; background: #132342; border-color: #31466e; }
+  #family-tv .quest-box { display: grid; place-items: center; height: 22px; border: 1px solid #8aace0; border-radius: 5px; color: #17394a; background: #0a1935; font-size: 16px; line-height: 1; }
+  #family-tv .quest-task[aria-pressed="true"] .quest-box { border-color: var(--quest-green); background: var(--quest-green); }
+  #family-tv .quest-task[aria-pressed="true"] .quest-box::after { content: "✓"; font-weight: 900; }
+  #family-tv .quest-add { color: #d2e4ff; }
+  #family-tv .quest-value { grid-column: 3; grid-row: 1; max-width: 103px; padding: 3px 6px; border-radius: 5px; background: #0c1a38; color: var(--quest-gold); font-size: 12px; font-weight: 800; }
+  @media (min-width: 631px) and (max-width: 900px), (max-width: 425px) {
+    #family-tv .quest-task { grid-template-columns: 22px minmax(0,1fr) 58px; column-gap: 8px; row-gap: 2px; }
+    #family-tv .quest-task-picture { grid-column: 3; grid-row: 1 / span 2; }
+    #family-tv .quest-value { grid-column: 2; grid-row: 2; justify-self: start; max-width: 100%; padding-block: 1px; }
+  }
+  #family-tv .quest-gate { margin: 0 0 8px; padding: 8px 10px; border-radius: 8px; background: #342e36; color: #ffe1a5; font-size: 13px; font-weight: 650; }
+  #family-tv [data-video-count] { display: block; color: var(--quest-muted); font-size: 11px; margin-top: 1px; }
+  #family-tv .quest-status { display: grid; gap: 9px; }
+  #family-tv .quest-meter { min-width: 0; padding: 10px 12px; border: 1px solid #486292; border-radius: 11px; background: #142748; }
+  #family-tv .quest-norm { border-color: #9e8355; background: linear-gradient(120deg, #20364f, #192f51); }
+  #family-tv .quest-meter-title { display: flex; align-items: center; justify-content: space-between; gap: 7px; }
+  #family-tv .quest-meter-title h2 { font-size: 15px; font-weight: 850; }
+  #family-tv .quest-medal { color: var(--quest-gold); font-size: 17px; }
+  #family-tv .quest-number { font-size: 28px; line-height: 1.1; font-weight: 900; letter-spacing: -.03em; color: var(--quest-gold); margin-top: 3px; }
+  #family-tv .quest-number small { font-size: 14px; color: var(--quest-muted); letter-spacing: 0; font-weight: 750; }
+  #family-tv .quest-gadget .quest-number { color: var(--quest-blue); }
+  #family-tv .quest-progress { position: relative; display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; margin: 8px 2px 6px 0; }
+  #family-tv .quest-progress::after { content: ""; position: absolute; right: -3px; top: -2px; bottom: -2px; width: 2px; background: var(--quest-gold); border-radius: 1px; }
+  #family-tv .quest-progress span, #family-tv .quest-minute-track { height: 7px; border-radius: 3px; background: #324972; overflow: hidden; }
+  #family-tv .quest-progress span.filled { background: var(--kid); }
+  #family-tv .quest-progress span.remark, #family-tv .quest-norm-remarks::before { background: repeating-linear-gradient(135deg, #d35758 0 4px, #792f42 4px 8px); }
+  #family-tv .quest-norm-remarks { color: #ffb7b9; }
+  #family-tv .quest-norm-remarks::before { content: ""; display: inline-block; width: 12px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
+  #family-tv .quest-next { color: var(--quest-gold); font-size: 14px; font-weight: 850; }
+  #family-tv .quest-norm[data-complete] .quest-next { color: var(--quest-green); }
+  #family-tv .quest-minute-track { margin: 7px 0 5px; }
+  #family-tv .quest-minute-track span { display: block; width: 0%; height: 100%; border-radius: inherit; background: #86bfff; transition: width .22s ease; }
+  #family-tv .quest-detail { color: var(--quest-muted); font-size: 12px; line-height: 1.3; font-weight: 650; }
+  #family-tv .quest-money .quest-meter-title strong { color: var(--quest-gold); font-size: 22px; line-height: 1.12; font-weight: 900; white-space: nowrap; }
+  #family-tv .quest-money .quest-detail { margin-top: 4px; }
+  #family-tv .quest-payout { color: #d6c49b; }
+  #family-tv .quest-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 9px 15px; background: #122140; border-top: 1px solid #324974; padding: 10px 21px; color: #c6d5f1; font-size: 12px; font-weight: 700; }
+  #family-tv .quest-week, #family-tv .quest-keys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  #family-tv .quest-week strong { color: var(--kid-text, var(--kid)); }
+  #family-tv .quest-week-dot { width: 7px; height: 7px; background: var(--kid); border-radius: 50%; }
+  #family-tv .quest-week-reward { color: #dee9fc; margin-left: 4px; }
+  #family-tv kbd { font: inherit; color: #e9f3ff; border: 1px solid #526f9a; border-radius: 4px; padding: 2px 5px; background: #203658; }
+  @media (max-width: 630px) {
+    #family-tv .quest-main { grid-template-columns: 1fr; padding: 12px; gap: 12px; }
+    #family-tv .quest-status { grid-row: 1; grid-template-columns: 1fr 1fr; }
+    #family-tv .quest-money { grid-column: 1 / -1; }
+    #family-tv .quest-hero, #family-tv .quest-footer { padding-inline: 12px; }
+    #family-tv .quest-hero { background-position: right center; }
+    #family-tv .quest-person h1 { font-size: 32px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #family-tv .quest-minute-track span { transition: none; }
+  }
+  #family-tv { font-variant-numeric: tabular-nums; }
+  #family-tv .kid-orange { --kid: #ffb66f; --kid-dark: #df711f; --kid-panel: #5b3526; }
+  #family-tv .kid-green { --kid: #94e8ae; --kid-dark: #3eaa7e; --kid-panel: #1a4646; }
+  #family-tv .kid-red { --kid: #e85842; --kid-dark: #ac3524; --kid-panel: #482a24; --kid-text: #f97859; --kid-mark-ink: #130c0a; }
+  #family-tv .cal-hero { padding: 16px 20px; background: linear-gradient(90deg,#10244c 10%,#11265499 53%,#0d1b3d20) right 16% / cover; border-bottom: 1px solid #5472a66e; }
+  #family-tv .cal-kicker { color: #ffdf9d; font-size: 11px; letter-spacing: .09em; font-weight: 850; }
+  #family-tv .cal-hero h1 { margin: 3px 0 4px; font-size: clamp(28px,5vw,54px); font-weight: 900; letter-spacing: -.045em; line-height: 1.03; }
+  #family-tv .cal-hero h1 em { color: #ffda85; font-style: normal; }
+  #family-tv .cal-topline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; font-weight: 750; color: #d7e6ff; }
+  #family-tv .cal-week-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  #family-tv .cal-week-nav button { min-width: 42px; min-height: 38px; text-align: center; padding: 3px 9px; border: 1px solid #7497d3; border-radius: 7px; background: #1b345b; font-size: 14px; font-weight: 780; }
+  #family-tv .cal-week-nav button:disabled { opacity: .56; }
+  #family-tv .cal-week-nav [data-week-nav="-1"], #family-tv .cal-week-nav [data-week-nav="1"] { font-size: 23px; line-height: 1; }
+  #family-tv [data-week-range] { padding-inline: 4px; color: #ffdf9d; font-size: 14px; font-weight: 800; }
+  #family-tv [data-advance], #family-tv [data-morning-button], #family-tv [data-back] { min-height: 34px; border-radius: 7px; padding: 5px 9px; border: 1px solid #7497d37d; background: #1b345bed; font-size: 12px; font-weight: 800; }
+  #family-tv .cal-main { display: grid; grid-template-columns: 174px minmax(0,1fr); gap: 13px; padding: 14px 17px 0; }
+  #family-tv .cal-profiles { display: grid; gap: 9px; align-content: start; }
+  #family-tv .cal-profiles button { display: flex; min-height: 62px; align-items: center; padding: 7px; border-radius: 10px; border: 1px solid #57719f80; background: linear-gradient(120deg,var(--kid-panel),#192b4c); }
+  #family-tv .cal-profiles img { width: 43px; height: 43px; flex-shrink: 0; margin-right: 15px; object-fit: cover; border: 1px solid var(--kid); border-radius: 7px; }
+  #family-tv .cal-profiles strong { display: block; font-size: 17px; font-weight: 900; }
+  #family-tv .cal-profiles small { display: block; color: var(--kid-text, var(--kid)); font-size: 11px; font-weight: 750; }
+  #family-tv .cal-profiles i { margin-left: auto; color: var(--kid-text, var(--kid)); font-style: normal; font-size: 21px; }
+  #family-tv .cal-chart, #family-tv .cal-week, #family-tv .cal-morning { border-radius: 12px; background: #162949; border: 1px solid #486292; padding: 10px 13px; min-width: 0; }
+  #family-tv .cal-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 9px; justify-content: space-between; }
+  #family-tv .cal-heading h2 { font-size: 17px; font-weight: 900; }
+  #family-tv .cal-heading > span { font-size: 11px; color: var(--quest-muted); font-weight: 750; }
+  #family-tv .cal-plot { margin-top: 8px; position: relative; height: 145px; background: repeating-linear-gradient(to top,#b1cbff16 0 1px,transparent 1px 24px); }
+  #family-tv .cal-area, #family-tv .cal-dates { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; }
+  #family-tv .cal-area { height: 100%; }
+  #family-tv .cal-day { position: relative; display: flex; align-items: flex-end; gap: 3px; justify-content: center; padding-inline: 4px; border-radius: 7px 7px 0 0; }
+  #family-tv .cal-day[data-today], #family-tv .cal-date[data-today] { background: #82a7f229; }
+  #family-tv .cal-day[data-weekend], #family-tv .cal-date[data-weekend] { background: #ffe0a018; }
+  #family-tv .cal-column { position: relative; width: min(24%,24px); height: 100%; }
+  #family-tv .cal-bar { position: absolute; bottom: 0; width: 100%; height: var(--height,3%); border-radius: 5px 5px 2px 2px; transition: height .28s ease; }
+  #family-tv .cal-bar[data-empty] { background: #7795cf37; }
+  #family-tv .cal-stack { position: absolute; top: 0; bottom: 0; width: 100%; display: flex; flex-direction: column-reverse; overflow: hidden; border-radius: 5px 5px 2px 2px; }
+  #family-tv .cal-earned, #family-tv .cal-adjustment { flex: none; }
+  #family-tv .cal-earned { background: linear-gradient(var(--kid),var(--kid-dark)); }
+  #family-tv .cal-bar output { position: absolute; z-index: 3; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); min-width: 13px; text-align: center; color: #fff; background: #111; border: 1px solid #b9ccef; border-radius: 99px; padding: 0 2px; font-size: 11px; font-weight: 900; line-height: 1.15; }
+  #family-tv .cal-bar output:empty { display: none; }
+  #family-tv .cal-standard { position: absolute; z-index: 2; pointer-events: none; left: 0; right: 0; bottom: 49%; border-top: 1px dashed #b9ccef; }
+  #family-tv .cal-standard span { position: absolute; right: 4px; bottom: 3px; padding: 1px 6px; border-radius: 4px; background: #dbe7ff; color: #1b2e4d; font-size: 11px; font-weight: 900; }
+  #family-tv .cal-long-goal-line { bottom: var(--long-goal-threshold); border-top: 2px solid #ffce68; }
+  #family-tv .cal-long-goal-line span { background: #ffce68; color: #32230d; }
+  #family-tv .cal-long-goal { margin: 9px 17px 0; padding: 6px 9px; border: 1px solid #b58b51; border-radius: 9px; background: #302b39; }
+  #family-tv .cal-long-goal .cal-heading span, #family-tv .quest-long-goal { color: #ffdf98; }
+  #family-tv .cal-long-goal-rows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; margin-top: 5px; }
+  #family-tv .cal-long-goal-child { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 3px 6px; font-size: 11px; }
+  #family-tv .cal-long-goal-child > strong { color: var(--kid-text, var(--kid)); }
+  #family-tv .cal-long-goal-child > span { justify-self: end; color: #ffdf98; }
+  #family-tv .cal-long-goal-today { grid-column: 1 / -1; font-size: 11px; color: #f4dfb5; }
+  #family-tv .cal-long-goal-steps { grid-column: 1 / -1; display: flex; gap: 3px; padding: 1px; }
+  #family-tv .cal-long-goal-steps i { flex: 1; height: 9px; min-width: 0; border-radius: 2px; background: linear-gradient(to right, #c8a7ff 0 var(--carry), #ffce68 var(--carry) var(--fill), #665346 var(--fill) 100%); }
+  #family-tv .cal-long-goal-steps i[data-phase="today"] { outline: 1px solid #fff0c4; }
+  #family-tv .cal-long-goal-steps i[data-phase="tomorrow"] { outline: 1px dashed #c8a7ff; }
+  #family-tv .quest-long-goal { flex-basis: 100%; }
+  #family-tv .quest-long-goal .cal-long-goal-steps { max-width: 280px; margin-top: 4px; }
+  #family-tv .cal-target { position: absolute; z-index: 3; bottom: var(--target,49%); left: -1px; right: -1px; border-top: 2px solid #ffdf9b; box-shadow: 0 0 4px #ffbf5c9c; }
+  #family-tv .cal-date { text-align: center; padding: 4px 0; color: #dce7ff; font-size: 12px; font-weight: 850; border-radius: 0 0 6px 6px; }
+  #family-tv .cal-date[data-weekend] { color: #ffdfa1; }
+  #family-tv .cal-week { margin: 11px 17px 0; }
+  #family-tv .cal-week-content { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap: 12px; margin-top: 5px; }
+  #family-tv .cal-week-head, #family-tv .cal-week-row { display: grid; grid-template-columns: 60px repeat(7,minmax(0,1fr)) 35px; gap: 3px; align-items: center; text-align: center; min-height: 23px; font-size: 11px; font-weight: 800; }
+  #family-tv .cal-week-head { color: #c5d4ef; }
+  #family-tv .cal-week-row { border-top: 1px solid #99b1e52e; }
+  #family-tv .cal-week-name { text-align: left; color: var(--kid-text, var(--kid)); font-weight: 900; font-size: 12px; }
+  #family-tv .cal-week-mark { display: grid; place-items: center; height: 17px; border-radius: 4px; background: #294167; color: #d3e0fb; line-height: 1; }
+  #family-tv .cal-week-mark[data-status="done"] { background: var(--kid); color: var(--kid-mark-ink, #152742); }
+  #family-tv .cal-week-mark[data-status="restored"] { background: #b9ecdb; color: #154b3f; }
+  #family-tv .cal-week-mark[data-status="missed"] { background: #654052; color: #ffdbe3; }
+  #family-tv .cal-week-mark[data-status="today"] { background: #5d4b33; color: #ffe3a4; }
+  #family-tv .cal-week-total { color: var(--kid-text, var(--kid)); font-size: 13px; white-space: nowrap; }
+  #family-tv .cal-prizes { display: grid; grid-template-columns: 1fr 1.25fr; gap: 6px; }
+  #family-tv .cal-prizes > div { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 6px 8px; border-radius: 7px; background: #213a60; }
+  #family-tv .cal-prizes > div + div { background: #443d45; }
+  #family-tv .cal-prizes small { color: #d7e4fc; font-size: 11px; font-weight: 650; }
+  #family-tv .cal-prizes strong { font-size: 14px; line-height: 1.15; color: #ffdf9b; font-weight: 900; }
+  #family-tv .cal-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px; align-items: center; padding: 8px 17px; color: #c6d5f1; font-size: 12px; font-weight: 700; }
+  #family-tv .cal-morning { margin: 0 17px 12px; }
+  #family-tv .cal-morning-controls { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; color: #d8e5fb; font-size: 12px; }
+  #family-tv .cal-morning input { color: #f3f7ff; background: #20395f; border: 1px solid #6d8fc1; border-radius: 6px; font: inherit; padding: 3px 4px; }
+  #family-tv .cal-morning ul { display: grid; gap: 3px; list-style: none; padding: 0; margin: 6px 0 0; }
+  #family-tv .cal-morning li { font-size: 12px; }
+  #family-tv .cal-morning li strong { color: var(--kid-text, var(--kid)); margin-right: 5px; }
+  #family-tv .cal-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #family-tv [data-profile-screen] .quest-person img { border-color: var(--kid); }
+  #family-tv .quest-hero [data-back] { margin-right: 7px; }
+  #family-tv .quest-norm [data-raised] { margin-top: 4px; }
+  @media (max-width: 655px) {
+    #family-tv .cal-main { grid-template-columns: 1fr; padding-inline: 10px; gap: 9px; }
+    #family-tv .cal-profiles { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+    #family-tv .cal-profiles button { min-width: 0; min-height: 44px; padding: 5px; }
+    #family-tv .cal-profiles img { width: 29px; height: 29px; margin-right: 9px; }
+    #family-tv .cal-profiles strong { font-size: 13px; }
+    #family-tv .cal-profiles small { line-height: 1.05; }
+    #family-tv .cal-profiles i { display: none; }
+    #family-tv .cal-week, #family-tv .cal-morning { margin-inline: 10px; }
+    #family-tv .cal-week-content { grid-template-columns: 1fr; gap: 6px; }
+    #family-tv .cal-footer { padding-inline: 10px; }
+  }
+  @media (max-width: 430px) {
+    #family-tv .cal-profiles img { width: 23px; height: 23px; }
+    #family-tv .cal-plot { height: 112px; }
+    #family-tv .cal-day { padding-inline: 1px; gap: 2px; }
+    #family-tv .cal-bar output { display: none; }
+    #family-tv .cal-date { font-size: 11px; }
+    #family-tv .cal-standard span { font-size: 11px; right: 0; }
+    #family-tv .cal-heading h2 { font-size: 15px; }
+  }
+  @media (pointer: coarse) {
+    #family-tv [data-advance], #family-tv [data-morning-button], #family-tv [data-back] { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { #family-tv .cal-bar { transition: none; } }
+  #family-tv button:focus { outline: 2px solid #ffdf9a; outline-offset: 1px; }
+  #family-tv .cal-column { width: 24%; max-width: 24px; }
+  #family-tv .cal-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+  #family-tv .cal-legend > span { white-space: nowrap; }
+  #family-tv .cal-cat-key { display: inline-flex; align-items: center; gap: 4px; font-size: 17px; line-height: 1; }
+  #family-tv .cal-red-key, #family-tv .cal-praise-key { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 2px; }
+  #family-tv .cal-red, #family-tv .cal-red-key { background: repeating-linear-gradient(135deg,#ad434e 0 2px,#ffacaa 2px 4px); }
+  #family-tv .cal-praise, #family-tv .cal-praise-key { background: #bd92ff; }
+  #family-tv .quest-tabs { grid-template-columns: .85fr 1.2fr 1fr 1.2fr; }
+  #family-tv .cal-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+  #family-tv .quest-remarks { border-color: #a36574; background: #33293f; }
+  #family-tv .quest-remarks strong { color: #ffadb0; font-size: 20px; }
+  #family-tv .quest-cats { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+  #family-tv .quest-cats > span { white-space: nowrap; }
+  #family-tv [data-praise-count] { color: #dcbfff; }
+  #family-tv [data-sync-status] { color: var(--quest-muted); font-size: 12px; font-weight: 750; }
+  @supports not (font-size: clamp(28px,5vw,54px)) { #family-tv .cal-hero h1 { font-size: 42px; } }
+  @media (max-width: 630px) {
+    #family-tv .quest-remarks { grid-column: 1 / -1; }
+    #family-tv .quest-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-height: 600px) and (min-width: 700px) {
+    #family-tv .cal-hero { padding-block: 9px; }
+    #family-tv .quest-hero { padding-block: 5px; }
+    #family-tv .cal-hero h1 { font-size: 39px; }
+    #family-tv .cal-main { padding-top: 9px; }
+    #family-tv .cal-plot { height: 120px; }
+    #family-tv .cal-week { margin-top: 7px; }
+    #family-tv .quest-person { margin-top: 6px; }
+    #family-tv .quest-person img { width: 44px; height: 44px; }
+    #family-tv .quest-person h1 { font-size: 29px; }
+    #family-tv .quest-main { padding-block: 8px; }
+    #family-tv .quest-status { gap: 4px; }
+    #family-tv .quest-meter { padding: 5px 9px; }
+    #family-tv .quest-number { font-size: 24px; }
+    #family-tv .quest-progress, #family-tv .quest-minute-track { margin-top: 5px; }
+    #family-tv .quest-list { gap: 5px; }
+    #family-tv .quest-task { min-height: 39px; }
+  }
+  #family-tv[data-car] .cal-keys, #family-tv[data-car] .quest-keys { display: none; }
+  #family-tv[data-car] .cal-profiles button, #family-tv[data-car] .quest-tabs button,
+  #family-tv[data-car] .quest-task, #family-tv[data-car] [data-morning-button], #family-tv[data-car] [data-week-nav],
+  #family-tv[data-car] [data-back] { min-height: 48px; }
+  #family-tv[data-car] .cal-profiles img { margin-right: 18px; }
+  #family-tv[data-car] .cal-profiles small { margin-top: 4px; line-height: 1.2; }
+  @media (min-width: 656px) {
+    #family-tv[data-car] .cal-main { grid-template-columns: 212px minmax(0,1fr); }
+    #family-tv[data-car] .cal-profiles button { padding: 9px 11px; }
+    #family-tv[data-car] .cal-profiles img { margin-right: 28px; }
+    #family-tv[data-car] .cal-profiles i { padding-left: 8px; }
+  }
+</style>
+
+<script src="family-config.js"></script>
+<script src="rules.js"></script>
+<script src="projection.js"></script>
+<script src="journal.js"></script>
+<script src="task-icons.js"></script>
+<script src="tracker.js"></script>
+</body></html>

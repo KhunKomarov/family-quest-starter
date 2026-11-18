@@ -1,0 +1,11 @@
+{
+  "profiles": ["Алекс", "Саша", "Лёня"],
+  "utcOffsetMinutes": 0,
+  "goal": {
+    "title": "Семейный киновечер",
+    "reward": "Выбрать фильм на выходные",
+    "points": 10,
+    "days": 10,
+    "allowOneSkip": true
+  }
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102c27">
+  <link rel="manifest" href="/parent/manifest.webmanifest">
+  <link rel="stylesheet" href="/parent/style.css">
+  <title>Семейный квест · Вход</title>
+</head>
+<body class="login">
+  <header class="masthead"><div class="shell brand"><span class="wordmark"><span class="mark" aria-hidden="true">◆</span> Семейный квест</span></div></header>
+  <main class="shell">
+    <form id="login" class="panel login-panel">
+      <p class="kicker">ДЛЯ РОДИТЕЛЕЙ</p>
+      <h1>Вход в семейный журнал</h1>
+      <label for="access-code">Шестизначный код</label>
+      <input id="access-code" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{6}" maxlength="6" required>
+      <button class="primary" type="submit">Войти</button>
+      <p id="login-status" class="error" role="alert"></p>
+    </form>
+  </main>
+  <script defer src="/parent/login.js"></script>
+</body>
+</html>

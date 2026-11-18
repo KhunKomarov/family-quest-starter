@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102c27">
+  <link rel="stylesheet" href="/parent/style.css">
+  <title>Настройки дел · Семейный квест</title>
+</head>
+<body>
+  <header class="masthead">
+    <div class="shell brand">
+      <a href="/parent/" class="wordmark"><span class="mark" aria-hidden="true">◆</span> Семейный квест</a>
+      <a href="/parent/" class="header-link">К журналу</a>
+    </div>
+  </header>
+  <main class="shell">
+    <div class="intro">
+      <h1>Настройки дел</h1>
+      <p class="account" id="task-account"></p>
+    </div>
+    <section class="panel catalog" aria-labelledby="catalog-form-title">
+      <h2 id="catalog-form-title">Добавить постоянное дело</h2>
+      <form id="catalog-form" class="daily-form">
+        <label for="catalog-title">Название</label>
+        <input id="catalog-title" maxlength="120" required>
+        <label for="catalog-section">Категория</label>
+        <select id="catalog-section" aria-describedby="catalog-hint">
+          <option value="afternoon">После школы</option>
+          <option value="rewards">Суперзадания</option>
+        </select>
+        <p id="catalog-hint" class="meta"></p>
+        <div id="catalog-rate-field" hidden>
+          <label for="catalog-rate">Ставка за выполнение (минуты / жетоны)</label>
+          <input id="catalog-rate" type="number" inputmode="numeric" min="1" max="120" step="1" disabled>
+        </div>
+        <fieldset class="catalog-children">
+          <legend>Кто может выполнять</legend>
+          <div id="catalog-children"></div>
+        </fieldset>
+        <p id="catalog-status" class="status" role="status">Загружаем дела…</p>
+        <button type="submit" class="primary" disabled>Добавить дело</button>
+      </form>
+    </section>
+    <section class="panel catalog" aria-labelledby="catalog-list-title" hidden id="catalog-list">
+      <h2 id="catalog-list-title">Дела в этой категории</h2>
+      <ul id="catalog-items" class="items"></ul>
+    </section>
+  </main>
+  <script defer src="/parent/family-config.js"></script>
+  <script defer src="/parent/rules.js"></script>
+  <script defer src="/parent/tasks.js"></script>
+</body>
+</html>
