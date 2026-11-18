@@ -33,7 +33,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def session(self):
         try:
-            cookie = SimpleCookie(self.headers.get("Cookie", "")).get("family_parent")
+            name = "family_parent" if self.server.preview else "__Host-family_parent"
+            cookie = SimpleCookie(self.headers.get("Cookie", "")).get(name)
         except CookieError:
             return ""
         return cookie.value if cookie else ""
@@ -148,7 +149,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def cookie(self, value, age):
         secure = "" if self.server.preview else "; Secure"
-        return f"family_parent={value}; Max-Age={age}; Path=/parent; HttpOnly; SameSite=Strict{secure}"
+        name = "family_parent" if self.server.preview else "__Host-family_parent"
+        path = "/parent" if self.server.preview else "/"
+        return f"{name}={value}; Max-Age={age}; Path={path}; HttpOnly; SameSite=Strict{secure}"
 
     def asset(self, path, mime):
         self.send_content(200, mime, path.read_bytes())
