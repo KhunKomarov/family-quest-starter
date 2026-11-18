@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
 <title>Семейный квест</title>
 <style>html,body{margin:0;background:#0b1731}body{padding:12px}</style></head><body>
 <section id="family-tv" aria-label="Семейный квест">
@@ -353,7 +353,7 @@
   }
   @media (prefers-reduced-motion: reduce) { #family-tv .cal-bar { transition: none; } }
   #family-tv button:focus { outline: 2px solid #ffdf9a; outline-offset: 1px; }
-  #family-tv .cal-column { width: 24%; max-width: 24px; }
+  #family-tv .cal-column { width: calc(90% / var(--child-count,3)); max-width: 24px; }
   #family-tv .cal-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; }
   #family-tv .cal-legend > span { white-space: nowrap; }
   #family-tv .cal-cat-key { display: inline-flex; align-items: center; gap: 4px; font-size: 17px; line-height: 1; }
