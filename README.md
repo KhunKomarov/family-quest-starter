@@ -4,6 +4,8 @@
 
 [Открыть демо](https://khunkomarov.github.io/family-quest-starter/?demo=1) · [Скачать проект с инструкциями](https://github.com/KhunKomarov/family-quest-starter/archive/refs/heads/main.zip) · [Создать свою копию](https://github.com/new?template_name=family-quest-starter&template_owner=KhunKomarov)
 
+**[▶ Видеоинструкция — 3:55, MP4](https://github.com/KhunKomarov/family-quest-starter/releases/download/v1.3.0/family-quest-guide-ru.mp4)** — русская озвучка и субтитры: дела, цели, родительский кабинет и копилка.
+
 ![Демонстрация календаря на вымышленных данных](docs/demo.jpg)
 
 ## 1. Выберите способ установки
