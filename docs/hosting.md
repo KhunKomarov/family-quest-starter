@@ -8,7 +8,7 @@
 
 | Сценарий | Вариант |
 | --- | --- |
-| Посмотреть демо и проверить панель | Запуск на своём компьютере по [инструкции](install.md#1-локальная-проверка) |
+| Посмотреть демо и проверить панель | Запуск на своём компьютере по [инструкции](install.md#локальная-проверка) |
 | Постоянная синхронизация дома и через LTE | VPS с Linux и HTTPS. Ориентир — DigitalOcean Droplet Basic Regular, 512 МиБ за $4 в месяц |
 | Уже есть Linux-сервер | Можно использовать его. Нужен HTTPS-адрес, доступный из сетей выбранных устройств |
 
@@ -26,7 +26,7 @@
      --home-dir /var/lib/family-quest --shell /usr/sbin/nologin family-quest
    sudo install -d -m 0755 /opt/family-quest /etc/family-quest
    sudo install -d -m 0700 -o family-quest -g family-quest /var/lib/family-quest
-   sudo cp -R config parent scripts sync web /opt/family-quest/
+   sudo cp -R config parent scripts setup sync web /opt/family-quest/
    sudo python3 /opt/family-quest/scripts/configure.py
    sudo install -m 0644 deploy/family-quest.service /etc/systemd/system/family-quest.service
    ```
