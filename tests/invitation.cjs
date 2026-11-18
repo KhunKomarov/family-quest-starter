@@ -81,7 +81,8 @@ test('invited family completes setup with a photo, own tasks, codes and a privat
     assert.equal(state.catalog.at(-1)[1][0].repeatables[0][1],'Собрать модель');
     assert.deepEqual(state.familyConfig.childGoals.map(group=>group.map(goal=>goal.kind)),[['weekly'],['monthly','individual']]);
     assert.equal(state.longGoal.allowedSkips,3);
-    await page.goto(origin+'/parent/goals/');
+    await page.goto(origin+'/parent/');
+    await page.getByRole('link',{name:'Настроить цели',exact:true}).click();
     await page.getByRole('button',{name:'＋ Ежемесячная цель',exact:true}).click();
     await page.getByRole('button',{name:'Сохранить цели',exact:true}).click();
     await page.getByText('Цели сохранены. Они появятся в детских профилях при следующей синхронизации.',{exact:true}).waitFor();
