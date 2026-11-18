@@ -20,6 +20,17 @@
 
   const calendar = get("[data-calendar]");
   const profile = get("[data-profile-screen]");
+  const profileList = get('.cal-profiles');
+  const profileTemplate = profileList.querySelector('[data-child]').cloneNode(true);
+  profileList.textContent = '';
+  window.FamilyRules.children.forEach((child, index) => {
+    const button = profileTemplate.cloneNode(true);
+    button.dataset.child = index;
+    button.className = child.color;
+    button.querySelector('img').src = 'avatar-' + (index + 1) + '.png';
+    profileList.appendChild(button);
+  });
+  root.style.setProperty('--child-count', window.FamilyRules.children.length);
   const profiles = all("[data-child]");
   const tabs = all("[role=tab]");
   const panels = all("[role=tabpanel]");
@@ -55,7 +66,7 @@
   const eveningClosed = day => Boolean(entertainmentCutoff(day) && currentTime() >= entertainmentCutoff(day));
   if (demo) {
     const allMorning = morningTasks.map(task => task[0]);
-    state.records[today] = [prechecked(allMorning.slice(0, 4)), prechecked(allMorning), prechecked(allMorning.slice(0, 3))];
+    state.records[today] = children.map((_, index) => prechecked(allMorning.slice(0, [4, 5, 3][index % 3])));
     const goal = window.FamilyConfig.goal;
     state.longGoal = {
       ...goal, start: sampleStart, skipSince: goal.allowOneSkip ? sampleStart : Infinity,
@@ -719,7 +730,7 @@
         if (key === "ArrowLeft") next = availableWeeks[weekIndex - 1] || profiles[0];
         if (key === "ArrowRight") next = availableWeeks[weekIndex + 1] || (!advance.hidden ? advance : reportButton);
         if (key === "ArrowDown") next = profiles[0];
-      } else next = profiles[current === reportButton ? 2 : 0];
+      } else next = profiles[current === reportButton ? profiles.length - 1 : 0];
     } else {
       const tasks = Array.from(lists[state.tab].querySelectorAll("button"));
       const i = tasks.indexOf(current);

@@ -29,7 +29,7 @@ ID = re.compile(r"[0-9a-f]{32}")
 SECRET = re.compile(r"[0-9a-f]{64}")
 PARENT_CODE = re.compile(r"[0-9]{6}")
 LOGIN_LIMITS = ((15 * 60_000, 6), (DAY, 20))
-CHILD_COUNT = 3
+CHILD_COUNT = len(CONFIG['profiles'])
 COMBINED_BINS_DAY = (date(2026, 11, 12) - date(1970, 1, 1)).days
 COMBINED_BINS = "bins-and-bags"
 OLD_BINS = {"bins", "bags"}
@@ -47,6 +47,20 @@ LONG_GOAL = {
 FAMILY_LINK_REWARDS = {
     "morning": "Экранное время утром", "youtube": "Экранное время днём",
 }
+
+
+def configure(config):
+    """Load the one family's validated settings at startup or initial registration."""
+    from configuration import validate_config
+    global CONFIG, CHILD_COUNT, CHILD_NAMES, OFFSET, LONG_GOAL
+    CONFIG = validate_config(config)
+    CHILD_COUNT = len(CONFIG['profiles'])
+    CHILD_NAMES = tuple(CONFIG['profiles'])
+    OFFSET = CONFIG['utcOffsetMinutes'] * 60_000
+    LONG_GOAL = {**LONG_GOAL, 'points': CONFIG['goal']['points'], 'days': CONFIG['goal']['days'],
+                 'title': CONFIG['goal']['title'], 'reward': CONFIG['goal']['reward'],
+                 'skipSince': (date(2026, 11, 16) - date(1970, 1, 1)).days
+                 if CONFIG['goal']['allowOneSkip'] else 1_000_000}
 
 
 def now_ms():

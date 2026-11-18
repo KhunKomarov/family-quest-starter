@@ -134,3 +134,5 @@ main { padding-bottom: 30px; }
   .chart-day { padding-inline: 2px; }
   .section-head h2 { font-size: 20px; }
 }
+
+#family-preview{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:24px}.child-chip{text-align:center;min-width:90px}.child-chip img{border-radius:50%;object-fit:cover;border:3px solid #edf0df}.child-chip p{font-weight:650;margin:6px 0}

@@ -35,11 +35,12 @@
     ["trash", "Вынести большой мусор и вставить новый пакет в ведро"],
     ["bins-and-bags", "Вынести мусор из маленьких вёдер и вставить новые пакеты"]
   ]);
-  const children = [
-    { name: config.profiles[0], color: "kid-orange", chores: dishwasherTasks, videoMinutes: 15 },
-    { name: config.profiles[1], color: "kid-green", chores: [["trash", "Вынести мусор"], ["bins-and-bags", "Проверить маленькие мусорные вёдра и заменить пакеты"]], videoBats: 10 },
-    { name: config.profiles[2], color: "kid-red", chores: [["shoes", "Расставить обувь в гараже"]], videoBats: 10 }
+  const templates = [
+    { color: "kid-orange", chores: dishwasherTasks, videoMinutes: 15 },
+    { color: "kid-green", chores: [["trash", "Вынести мусор"], ["bins-and-bags", "Проверить маленькие мусорные вёдра и заменить пакеты"]], videoBats: 10 },
+    { color: "kid-red", chores: [["shoes", "Расставить обувь в гараже"]], videoBats: 10 }
   ];
+  const children = config.profiles.map((name, index) => ({ ...templates[index % templates.length], name }));
   const bonusTasks = [
     ["poem", "Выучить стих из 8 строк", 15], ["text", "Выучить отрывок текста", 15],
     ["read", "Прочитать два листа и пересказать", 15], ["help", "Помочь выучить стих", 15],
@@ -303,7 +304,7 @@
             : prior && !prior[index].met ? Math.min(max, prior[index].target + 1) : ordinary;
           const seed = demo && sampleDays[d - sampleStart];
           if (seed) {
-            const total = seed[index];
+            const total = seed[index] || 0;
             const met = total >= target;
             const outstanding = met || weekday(d) >= 5 ? pending : pending.concat(d);
             return { target, score: total, raw: total, total, met, outstanding, restored: [], remarks: 0, parentPoints: 0, credit: { bats: 0 } };

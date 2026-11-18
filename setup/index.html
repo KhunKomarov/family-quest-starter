@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#174d43">
+  <title>Настроить свою семью · Семейный квест</title>
+  <link rel="stylesheet" href="/setup/style.css">
+  <script defer src="/setup/app.js"></script>
+</head>
+<body>
+  <header class="brand"><span class="mark" aria-hidden="true">◆</span><strong>Семейный квест</strong><span class="badge">Личное приглашение</span></header>
+  <main>
+    <section id="welcome" class="welcome panel">
+      <p class="eyebrow">У КАЖДОЙ СЕМЬИ СВОЙ РИТМ</p>
+      <h1>Маленькие дела.<br>Ваша большая команда.</h1>
+      <p class="lead">Добавьте детей, выберите дела и придумайте общую цель. Ваш журнал будет отдельным — со своими фотографиями и входами для родителей.</p>
+      <div class="illustration" aria-hidden="true"><span>🌿</span><span>😺</span><span>⭐</span></div>
+      <p id="invite-status" role="status">Проверяем приглашение…</p>
+      <button id="begin" class="primary" disabled>Настроить нашу семью <span aria-hidden="true">→</span></button>
+      <p id="existing-family" hidden><a class="secondary" href="/parent/">Уже зарегистрировались? Открыть кабинет</a></p>
+      <p class="fine">Сервер уже подготовлен. Покупать или настраивать его не нужно.</p>
+    </section>
+    <form id="wizard" hidden novalidate>
+      <nav class="steps" aria-label="Шаги настройки"><span>1 · Семья</span><span>2 · Дела</span><span>3 · Цель</span><span>4 · Вход</span></nav>
+      <section class="panel step" data-step="0">
+        <p class="eyebrow">ШАГ 1 ИЗ 4</p><h1>Знакомимся с вашей командой</h1>
+        <p class="lead">Как дети будут называться в трекере? Подойдут имена или домашние прозвища.</p>
+        <div class="section-title"><h2>Дети</h2><button id="add-child" type="button" class="secondary">＋ Добавить ребёнка</button></div>
+        <div id="child-cards" class="child-grid"></div>
+        <label for="timezone">Местное время семьи</label><select id="timezone"></select>
+        <p class="fine">Выбрано время вашего устройства. Смещение фиксированное: если у вас переводят часы, настройку времени понадобится обновить.</p>
+      </section>
+      <section class="panel step" data-step="1" hidden>
+        <p class="eyebrow">ШАГ 2 ИЗ 4</p><h1>Дела, которые подходят вам</h1>
+        <p class="lead">Начните с примера: уберите лишнее и добавьте своё. У каждого ребёнка может быть свой список.</p>
+        <label for="task-child">Чьи дела настраиваем</label><select id="task-child"></select>
+        <div class="task-section"><h2>Утро</h2><p class="fine">Пять обязательных дел. Названия можно изменить под ваш распорядок. Они открывают зачёт следующих дел.</p><div id="morning-tasks"></div></div>
+        <div class="task-section"><div class="section-title"><h2>Дневные дела</h2><button type="button" id="add-afternoon" class="secondary">＋ Добавить</button></div><p class="fine">Дневная норма — 7 очков вместе с утренними делами. Обычные дела сверх нормы дают 5 минут, дела с мусором и посудомойкой — 10.</p><div id="afternoon-tasks"></div></div>
+        <div class="task-section"><div class="section-title"><h2>Супердела</h2><button type="button" id="add-rewards" class="secondary">＋ Добавить</button></div><p class="fine">Укажите минуты за выполнение. После дневного лимита в 30 минут та же ставка пополняет копилку жетонами.</p><div id="reward-tasks"></div></div>
+        <div class="task-section"><h2>Повторяемое творческое дело</h2><label for="video-title">Что можно делать несколько раз</label><input id="video-title" maxlength="180"><label for="video-rate">Минуты / жетоны за выполнение</label><input id="video-rate" type="number" min="1" max="120" step="1"></div>
+      </section>
+      <section class="panel step" data-step="2" hidden>
+        <p class="eyebrow">ШАГ 3 ИЗ 4</p><h1>К чему идём вместе?</h1>
+        <p class="lead">Например, семейный киновечер, поход в парк или выбор игры на выходные.</p>
+        <label for="goal-title">Название цели</label><input id="goal-title" maxlength="80" value="Семейный киновечер">
+        <label for="goal-reward">Что ждёт в конце</label><input id="goal-reward" maxlength="80" value="Выбрать фильм на выходные">
+        <div class="two-columns"><div><label for="goal-points">Очков за день</label><input id="goal-points" type="number" min="1" max="50" value="10"></div><div><label for="goal-days">Зачтённых дней</label><input id="goal-days" type="number" min="1" max="30" value="10"></div></div>
+        <label class="check"><input id="goal-skip" type="checkbox" checked><span>Можно пропустить один день в серии</span></label>
+        <aside class="tip">У каждого ребёнка свой прогресс. Лишние очки переходят на следующий день. Дневные результаты и общая цель видны всей семье.</aside>
+      </section>
+      <section class="panel step" data-step="3" hidden>
+        <p class="eyebrow">ШАГ 4 ИЗ 4</p><h1>Вход только для родителей</h1>
+        <p class="lead">Придумайте каждому родителю свой шестизначный код. Они понадобятся для входа с телефона.</p>
+        <label for="parent-count">Сколько родительских входов</label><select id="parent-count"><option value="2">Два</option><option value="1">Один</option></select>
+        <div id="parent-cards" class="two-columns"></div>
+        <aside id="review" class="tip"></aside>
+        <label class="check"><input id="consent" type="checkbox"><span>Я согласен разместить данные нашей семьи на сервере пригласившего владельца. Он обслуживает сервер и имеет технический доступ к данным.</span></label>
+      </section>
+      <p id="form-status" class="form-status" role="alert"></p>
+      <footer class="actions"><button type="button" id="previous" class="secondary">← Назад</button><span id="step-caption"></span><button type="button" id="next" class="primary">Дальше →</button><button type="submit" id="finish" class="primary" hidden>Создать нашу семью</button></footer>
+    </form>
+    <section id="complete" class="panel welcome" hidden><p class="eyebrow">ВСЁ ГОТОВО</p><div class="success-icon" aria-hidden="true">✓</div><h1>Ваша семья на месте</h1><p class="lead">Имена, фотографии, дела и цель сохранены в вашем отдельном журнале. Вы уже вошли как первый родитель.</p><a class="primary" href="/parent/">Открыть семейный кабинет →</a><a class="secondary" href="/parent/connect/">Подключить детский экран</a><p class="fine">Сохраните адрес кабинета. Второй родитель сможет войти по своему коду. Приглашение уже использовано.</p></section>
+  </main>
+  <footer class="page-footer">Ваши дела. Ваши правила. Ваша команда.</footer>
+</body>
+</html>

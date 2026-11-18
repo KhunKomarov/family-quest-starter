@@ -9,21 +9,26 @@ import contextlib
 import datetime
 import fcntl
 import grp
+import hashlib
 import http.client
 import json
 import os
 from pathlib import Path
 import pwd
 import re
+import secrets
 import shutil
 import socket
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'sync'))
+from configuration import validate_catalog as check_catalog
 APPS = Path('/opt/fq-hosted')
 CONFIGS = Path('/etc/fq-hosted')
 DATA = Path('/var/lib/fq-hosted')
@@ -66,6 +71,21 @@ def metadata(slug):
     return json.loads((CONFIGS / slug / 'instance.json').read_text())
 
 
+def runtime_settings(data):
+    database = data / 'journal.sqlite3'
+    if not database.is_file():
+        return None
+    with contextlib.closing(sqlite3.connect(database)) as db:
+        if not db.execute("SELECT 1 FROM sqlite_master WHERE name='family_settings'").fetchone():
+            return None
+        row = db.execute('SELECT config,parents FROM family_settings WHERE id=1').fetchone()
+        if not row:
+            return None
+        catalog = [(since, json.loads(menus)) for since, menus in db.execute('SELECT since,menus FROM family_catalog ORDER BY since')]
+        photos = [(child, bytes(png)) for child, png in db.execute('SELECT child,png FROM family_photos')]
+    return {'config': json.loads(row[0]), 'parents': json.loads(row[1]), 'catalog': catalog, 'photos': photos}
+
+
 def instances():
     return [json.loads(path.read_text()) for path in sorted(CONFIGS.glob('*/instance.json'))]
 
@@ -100,6 +120,13 @@ def nginx_site(slug, hostname, port, tls=True):
         limit_req_status 429;
         proxy_pass http://127.0.0.1:{port};
     }}
+    location = /setup/api/register {{
+        client_max_body_size 3m;
+        limit_req zone=fq_hosted_login burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:{port};
+    }}
+    location ^~ /setup/ {{ proxy_pass http://127.0.0.1:{port}; }}
     location ^~ /parent/ {{ proxy_pass http://127.0.0.1:{port}; }}
     location = /v2/sync {{
         limit_except POST {{ deny all; }}
@@ -122,7 +149,7 @@ After=network.target
 User=fq-{slug}
 Group=fq-{slug}
 WorkingDirectory={app}
-ExecStart=/usr/bin/python3 {app}/sync/server.py --origin https://{hostname} --port {port} --database {data}/journal.sqlite3 --tokens {config}/devices.json --parents {config}/parents.json
+ExecStart=/usr/bin/python3 {app}/sync/server.py --origin https://{hostname} --port {port} --database {data}/journal.sqlite3 --tokens {config}/devices.json --parents {config}/parents.json --invitation-file {data}/invitation.json
 Restart=on-failure
 RestartSec=5s
 Environment=PYTHONDONTWRITEBYTECODE=1
@@ -159,7 +186,7 @@ def wait_for_server(port):
             connection.request('GET', '/parent/')
             response = connection.getresponse()
             response.read()
-            if response.status == 200:
+            if response.status == 200 or (response.status == 303 and response.getheader('Location') == '/setup/'):
                 return
         except OSError:
             pass
@@ -219,7 +246,7 @@ WantedBy=timers.target
 
 def stage(source, target, config=None, catalog=None):
     # Copy only runtime data/code. Never copy .local, credentials, Git, APKs or journals.
-    for directory in ('config', 'parent', 'scripts', 'sync', 'web'):
+    for directory in ('config', 'parent', 'scripts', 'sync', 'web', 'setup'):
         for path in (source / directory).rglob('*'):
             if path.is_symlink():
                 raise ValueError('source symlinks are not allowed')
@@ -233,43 +260,19 @@ def stage(source, target, config=None, catalog=None):
     if config:
         shutil.copyfile(config, target / 'config/family.json')
     if catalog:
-        validate_catalog(json.loads(catalog.read_text()))
+        count = len(json.loads((target / 'config/family.json').read_text())['profiles'])
+        validate_catalog(json.loads(catalog.read_text()), count)
         shutil.copyfile(catalog, target / 'sync/catalog.json')
     run('python3', target / 'scripts/configure.py', stdout=subprocess.DEVNULL)
 
 
-def validate_catalog(catalog):
-    if not isinstance(catalog, list) or not catalog or len(catalog) > 100:
-        raise ValueError('catalog must contain 1–100 dated menu sets')
-    previous = -1
-    for since, menus in catalog:
-        if type(since) is not int or since <= previous or not isinstance(menus, list) or len(menus) != 3:
-            raise ValueError('catalog needs ascending days and exactly three profiles')
-        previous = since
-        for menu in menus:
-            if not isinstance(menu, dict):
-                raise ValueError('invalid menu')
-            for section in ('morning', 'afternoon', 'rewards'):
-                tasks = menu.get(section)
-                if not isinstance(tasks, list) or len(tasks) > 100:
-                    raise ValueError('each section needs at most 100 tasks')
-                identifiers = set()
-                for task in tasks:
-                    size = 3 if section == 'rewards' else 2
-                    if not isinstance(task, list) or len(task) != size:
-                        raise ValueError('invalid task')
-                    identifier, title = task[:2]
-                    if (not isinstance(identifier, str) or not re.fullmatch(r'[a-z0-9-]{1,60}', identifier)
-                            or identifier in identifiers or not isinstance(title, str) or not 1 <= len(title.strip()) <= 180):
-                        raise ValueError('invalid task identifier or title')
-                    identifiers.add(identifier)
-                    if size == 3 and (type(task[2]) is not int or not 1 <= task[2] <= 120):
-                        raise ValueError('invalid reward rate')
-                if section == 'morning' and identifiers != {'bed', 'teeth', 'dress', 'breakfast', 'car'}:
-                    raise ValueError('keep the five required morning IDs')
+def validate_catalog(catalog, count=3):
+    return check_catalog(catalog, count)
 
 
 def create(args):
+    if args.invite_output and args.invite_output.exists():
+        raise ValueError('choose a new private path for the invitation')
     host = json.loads((CONFIGS / 'host.json').read_text())
     existing = instances()
     if sum(item.get('enabled', True) for item in existing) >= host['maxFamilies']:
@@ -295,7 +298,8 @@ def create(args):
     with tempfile.TemporaryDirectory() as temporary:
         staged = Path(temporary) / 'app'
         stage(args.source.resolve(), staged, args.config, args.catalog)
-        validate_catalog(json.loads((staged / 'sync/catalog.json').read_text()))
+        count = len(json.loads((staged / 'config/family.json').read_text())['profiles'])
+        validate_catalog(json.loads((staged / 'sync/catalog.json').read_text()), count)
         staged_credentials = Path(temporary) / 'connection'
         command = ['python3', str(staged / 'scripts/init-instance.py'), '--directory', str(staged_credentials),
                    '--origin', f'https://{hostname}']
@@ -354,10 +358,89 @@ def create(args):
         os.chown(config / 'instance.json', 0, gid)
         (config / 'instance.json').chmod(0o640)
     print(f'Created https://{hostname}/parent/ (credentials were not printed).')
+    if args.invite_output:
+        invite(args.slug, args.invite_output, args.invite_days, args.source)
+
+
+def invite(slug, output, days, source):
+    """Upgrade only an empty family and give it an expiring setup link."""
+    app, config, data = paths(slug)
+    info = metadata(slug)
+    if not info['enabled'] or output.exists() or source.resolve() == app.resolve():
+        raise ValueError('need an enabled family, a new output path and a separate template')
+    with contextlib.closing(sqlite3.connect(data / 'journal.sqlite3')) as db:
+        if db.execute("SELECT 1 FROM sqlite_master WHERE name='family_settings'").fetchone() and db.execute(
+            'SELECT 1 FROM family_settings LIMIT 1'
+        ).fetchone():
+            raise ValueError('family is already registered; an invite cannot replace it')
+        for table in ('family_cells', 'family_tasks', 'family_adjustments', 'family_payouts', 'family_audit'):
+            if db.execute(f'SELECT 1 FROM {table} LIMIT 1').fetchone():
+                raise ValueError('invites may only be issued for an empty journal')
+    with tempfile.TemporaryDirectory() as temporary:
+        staged = Path(temporary) / 'app'
+        stage(source.resolve(), staged, app / 'config/family.json', app / 'sync/catalog.json')
+        backup(slug)
+        unit = f'fq-hosted-{slug}.service'
+        run('systemctl', 'stop', unit)
+        try:
+            gid = grp.getgrnam(f'fq-{slug}').gr_gid
+            for path in staged.rglob('*'):
+                target = app / path.relative_to(staged)
+                if path.is_dir():
+                    target.mkdir(parents=True, exist_ok=True)
+                else:
+                    shutil.copyfile(path, target)
+                os.chown(target, 0, gid)
+                target.chmod(0o750 if target.is_dir() else 0o640)
+            devices_path = config / 'devices.json'
+            devices = json.loads(devices_path.read_text())
+            if 'tablet' not in devices:
+                devices['tablet'] = secrets.token_hex(32)
+                private_json(devices_path, devices)
+                os.chown(devices_path, 0, gid)
+                devices_path.chmod(0o640)
+                tablet = config / 'tablet.properties'
+                tablet.write_text(f'endpoint=https://{info["hostname"]}/v2/sync\ntoken={devices["tablet"]}\nmode=touch\n')
+                os.chown(tablet, 0, gid)
+                tablet.chmod(0o640)
+            token = secrets.token_urlsafe(32)
+            invitation = data / 'invitation.json'
+            private_json(invitation, {'digest': hashlib.sha256(token.encode()).hexdigest(),
+                                      'expires': int(time.time()) + days * 86400})
+            os.chown(invitation, pwd.getpwnam(f'fq-{slug}').pw_uid, gid)
+            (UNITS / unit).write_text(service(slug, info['hostname'], info['port']))
+            # Update only this family's proxy with the setup routes and upload limit.
+            site = SITES / f'fq-hosted-{slug}'
+            site.write_text(nginx_site(slug, info['hostname'], info['port']))
+            reload_nginx()
+            run('systemctl', 'daemon-reload')
+        finally:
+            run('systemctl', 'start', unit)
+        wait_for_server(info['port'])
+        output.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with output.open('x') as file:
+            file.write(f'https://{info["hostname"]}/setup/#invite={token}\n')
+        output.chmod(0o600)
+    print(f'One-use invitation saved privately in {output}; expires in {days} days.')
+
+
+def revoke_invite(slug):
+    _, _, data = paths(slug)
+    if runtime_settings(data):
+        raise ValueError('registered families do not have an active setup invitation')
+    path = data / 'invitation.json'
+    value = json.loads(path.read_text())
+    value['expires'] = 0
+    private_json(path, value)
+    os.chown(path, pwd.getpwnam(f'fq-{slug}').pw_uid, grp.getgrnam(f'fq-{slug}').gr_gid)
+    run('systemctl', 'restart', f'fq-hosted-{slug}.service')
+    wait_for_server(metadata(slug)['port'])
+    print('Invitation revoked. The family journal was not deleted.')
 
 
 def export(slug, output):
-    app, config, _ = paths(slug)
+    app, config, data = paths(slug)
+    active = runtime_settings(data)
     info = metadata(slug)
     if not info['enabled']:
         raise ValueError('family is not enabled')
@@ -367,11 +450,21 @@ def export(slug, output):
     with output.open('xb') as raw:
         os.chmod(output, 0o600)
         with zipfile.ZipFile(raw, 'w', zipfile.ZIP_DEFLATED) as archive:
-            archive.write(app / 'config/family.json', 'config/family.json')
-            archive.write(app / 'sync/catalog.json', 'sync/catalog.json')
+            if active:
+                archive.writestr('config/family.json', json.dumps(active['config'], ensure_ascii=False))
+                archive.writestr('sync/catalog.json', json.dumps(active['catalog'], ensure_ascii=False))
+                archive.writestr('connection/parent-codes.json', json.dumps(active['parents'], ensure_ascii=False))
+                for index in range(len(active['config']['profiles'])):
+                    photo = dict(active['photos']).get(index)
+                    if photo is None:
+                        photo = (app / 'web' / f'avatar-{index % 3 + 1}.png').read_bytes()
+                    archive.writestr(f'web/avatar-{index + 1}.png', photo)
+            else:
+                archive.write(app / 'config/family.json', 'config/family.json')
+                archive.write(app / 'sync/catalog.json', 'sync/catalog.json')
+                archive.write(config / 'parents.json', 'connection/parent-codes.json')
             for path in sorted(config.glob('*.properties')):
                 archive.write(path, f'connection/{path.name}')
-            archive.write(config / 'parents.json', 'connection/parent-codes.json')
             archive.writestr('connection/instance.json', json.dumps(info, indent=2))
             archive.writestr('START_HERE.txt', 'Private family connection pack. Do not publish or upload to GitHub.\n'
                              f'Parent panel: https://{info["hostname"]}/parent/\n'
@@ -383,7 +476,8 @@ def export(slug, output):
 
 
 def configure(slug, source_config):
-    app, _, _ = paths(slug)
+    app, _, data = paths(slug)
+    active = runtime_settings(data)
     info = metadata(slug)
     if not info['enabled']:
         raise ValueError('family is not enabled')
@@ -391,19 +485,31 @@ def configure(slug, source_config):
     with tempfile.TemporaryDirectory() as temporary:
         staged = Path(temporary) / 'app'
         stage(app, staged, source_config)
+        new_config = json.loads((staged / 'config/family.json').read_text())
+        if active and len(new_config['profiles']) != len(active['config']['profiles']):
+            raise ValueError('registered profiles cannot be added or removed through configure')
         backup(slug)
         gid = grp.getgrnam(f'fq-{slug}').gr_gid
         replacements = ('config/family.json', 'web/family-config.js')
         originals = {name: (app / name).read_bytes() for name in replacements}
+        unit = f'fq-hosted-{slug}.service'
+        run('systemctl', 'stop', unit)
         try:
             for name in replacements:
                 (app / name).write_bytes((staged / name).read_bytes())
-            run('systemctl', 'restart', f'fq-hosted-{slug}.service')
+            if active:
+                with contextlib.closing(sqlite3.connect(data / 'journal.sqlite3')) as db, db:
+                    db.execute('UPDATE family_settings SET config=? WHERE id=1', (json.dumps(new_config, ensure_ascii=False),))
+            run('systemctl', 'start', unit)
             wait_for_server(info['port'])
         except BaseException:
             for name, content in originals.items():
                 (app / name).write_bytes(content)
-            run('systemctl', 'restart', f'fq-hosted-{slug}.service')
+            if active:
+                with contextlib.closing(sqlite3.connect(data / 'journal.sqlite3')) as db, db:
+                    db.execute('UPDATE family_settings SET config=? WHERE id=1',
+                               (json.dumps(active['config'], ensure_ascii=False),))
+            run('systemctl', 'restart', unit)
             raise
         finally:
             for name in replacements:
@@ -430,8 +536,15 @@ def backup(slug):
             for path in config.iterdir():
                 if path.is_file():
                     archive.write(path, f'connection/{path.name}')
-            archive.write(app / 'config/family.json', 'config/family.json')
-            archive.write(app / 'sync/catalog.json', 'sync/catalog.json')
+            active = runtime_settings(data)
+            if active:
+                archive.writestr('config/family.json', json.dumps(active['config'], ensure_ascii=False))
+                archive.writestr('sync/catalog.json', json.dumps(active['catalog'], ensure_ascii=False))
+                for child, png in active['photos']:
+                    archive.writestr(f'web/avatar-{child + 1}.png', png)
+            else:
+                archive.write(app / 'config/family.json', 'config/family.json')
+                archive.write(app / 'sync/catalog.json', 'sync/catalog.json')
     target.chmod(0o600)
     print(f'Backup verified: {target}')
 
@@ -450,6 +563,15 @@ def main():
     add.add_argument('--device', action='append')
     add.add_argument('--port', type=int)
     add.add_argument('--certbot', default='certbot')
+    add.add_argument('--invite-output', type=Path)
+    add.add_argument('--invite-days', type=int, choices=range(1, 31), default=7)
+    invitation = commands.add_parser('invite')
+    invitation.add_argument('--slug', type=slug_value, required=True)
+    invitation.add_argument('--output', type=Path, required=True)
+    invitation.add_argument('--days', type=int, choices=range(1, 31), default=7)
+    invitation.add_argument('--source', type=Path, default=ROOT)
+    revoke = commands.add_parser('revoke-invite')
+    revoke.add_argument('--slug', type=slug_value, required=True)
     out = commands.add_parser('export')
     out.add_argument('--slug', type=slug_value, required=True)
     out.add_argument('--output', type=Path, required=True)
@@ -473,6 +595,10 @@ def main():
                 install_host(args.base_domain)
             elif args.command == 'create':
                 create(args)
+            elif args.command == 'invite':
+                invite(args.slug, args.output.resolve(), args.days, args.source)
+            elif args.command == 'revoke-invite':
+                revoke_invite(args.slug)
             elif args.command == 'export':
                 export(args.slug, args.output.resolve())
             elif args.command == 'configure':
