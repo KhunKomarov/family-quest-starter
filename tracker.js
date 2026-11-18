@@ -2,6 +2,8 @@
   "use strict";
 
   const root = document.getElementById("family-tv");
+  const demoGuide = document.querySelector("[data-demo-guide]");
+  if (demoGuide) demoGuide.hidden = new URLSearchParams(location.search).get("demo") !== "1";
   const get = selector => root.querySelector(selector);
   const all = selector => Array.from(root.querySelectorAll(selector));
   const text = (selector, value) => { get(selector).textContent = value; };
@@ -418,7 +420,7 @@
     const gate = get("[data-gate-message]");
     gate.hidden = rewardsOpen;
     gate.textContent = met ? "Отметки зачтутся после восстановления пропусков."
-      : "Дела можно отметить сейчас. Минуты и жетоны начислятся после дневной нормы.";
+      : "Дела можно отметить сейчас. Минуты и монеты начислятся после дневной нормы.";
     get("[data-hours-message]").hidden = open;
     view.morning.forEach(({button, value}) => {
       const id = button.dataset.base;
@@ -498,7 +500,7 @@
       }, 0);
     text("[data-wallet]", Number.isSafeInteger(balance) ? balance + " жет." : "—");
     text("[data-cash-earned]", "Сегодня " + bats + " жет. · за неделю " + stats.bats + " жет.");
-    text("[data-cash-next]", minutes === minuteLimit ? "Теперь цена дела начисляется в жетонах" : "После 30 минут цена дела начисляется в жетонах");
+    text("[data-cash-next]", minutes === minuteLimit ? "Теперь цена дела начисляется в монетах" : "После 30 минут цена дела начисляется в монетах");
     text("[data-week]", weekTotal(index) + " из 5");
     const goal = state.longGoal;
     const progress = longGoalProgress(index);
