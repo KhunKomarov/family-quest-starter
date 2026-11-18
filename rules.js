@@ -25,7 +25,7 @@
   ];
   const requiredMorningIds = new Set(morningTasks.map(([id]) => id));
   const commonDayTasks = [
-    ["wash", "Помыться, отнести свою одежду в стирку, надеть трусики"],
+    ["wash", "Принять душ"],
     ["school", "После школы забрать вещи из машины, поставить свою обувь на место и занести рюкзаки в дом"],
     ["clothes", "Разложить свою одежду по полкам"],
     ["toys", "Убрать игрушки на место"]
@@ -61,7 +61,7 @@
     ? previous || morningCutoff : weekday(day) >= 5 ? "09:00" : morningCutoff;
   const monday = day => day - weekday(day);
   const dateText = day => date(day).getUTCDate() + " " + months[date(day).getUTCMonth()];
-  const blank = () => ({ base: {}, rewards: [], videos: 0, remarks: 0, parentPoints: 0, order: [] });
+  const blank = () => ({ base: {}, rewards: [], repeatables: {}, videos: 0, remarks: 0, parentPoints: 0, order: [] });
 
   function dayTasks(index, day) {
     const chores = children[index].chores;
@@ -152,8 +152,9 @@
     const counter = progress.streak + " / " + goal.days + " дней";
     if (progress.streak === goal.days) return counter + " · итог в полночь";
     const surplus = progress.surplus ? " · +" + progress.surplus + " на завтра" : "";
-    const skip = progress.skipEnabled && progress.streak
-      ? (progress.missUsed ? " · пропуск использован" : " · есть 1 пропуск") : "";
+    const skips = goal.allowedSkips === undefined ? 1 : goal.allowedSkips;
+    const used = progress.missCount === undefined ? Number(Boolean(progress.missUsed)) : progress.missCount;
+    const skip = progress.skipEnabled && progress.streak ? ' · пропуски: ' + used + '/' + skips : '';
     return counter + surplus + skip;
   }
 
@@ -195,6 +196,7 @@
       let morningCount = 0;
       let parentCount = 0;
       let countedVideos = 0;
+      let countedRepeats = 0;
       let pendingVideos = 0;
       const awards = new Map();
       const morningIds = new Set(menu.morning.map(([id]) => id));
@@ -202,6 +204,7 @@
         ["base:" + id, afternoonTaskRate(day, id, title, menu.afternoonMinutes,
           state.afternoonRateCutover, entry.base[id])]));
       const rates = new Map(menu.rewards.map(([id, , rate]) => [id, rate]));
+      const repeatRates = new Map((menu.repeatables || []).map(([id, , rate]) => [id, rate]));
       const video = menu.video;
       const pendingAfternoon = [];
       const pendingRewards = [];
@@ -222,7 +225,10 @@
       }
 
       function applyReward(mark) {
-        if (mark !== "video") {
+        if (mark.startsWith('repeat:')) {
+          const rate = repeatRates.get(mark.slice(7));
+          if (rate !== undefined) { credit(mark, rate); countedRepeats++; }
+        } else if (mark !== "video") {
           const rate = rates.get(mark.slice("bonus:".length));
           if (rate !== undefined) credit(mark, rate);
         } else if (day >= morningMinimumSince || video.minutes) {
@@ -271,13 +277,13 @@
           } else if (kind === "parent") {
             parentCount++;
             settleRewards();
-          } else if (kind === "bonus" || kind === "video") {
+          } else if (kind === "bonus" || kind === "video" || kind === 'repeat') {
             if (dailyReached()) applyReward(mark);
             else pendingRewards.push(mark);
           }
         }
       }
-      return { minutes, bats, awards, countedVideos, pendingVideos };
+      return { minutes, bats, awards, countedVideos, pendingVideos, countedRepeats };
     }
 
     function getDay(day) {
@@ -326,7 +332,7 @@
           const outstanding = met || weekday(d) >= 5 ? remaining : remaining.concat(d);
           const rewardsOpen = met && (!recovery || remaining.length === 0);
           const credit = creditFor(entry, target, recovery ? pending.length : 0, met, marked, menu, morningRequired, d);
-          const rewards = rewardsOpen ? menu.rewards.filter(([id]) => entry.rewards.includes(id)).length + credit.countedVideos : 0;
+          const rewards = rewardsOpen ? menu.rewards.filter(([id]) => entry.rewards.includes(id)).length + credit.countedVideos + credit.countedRepeats : 0;
           return { entry, morningRequired, morningDone, morningMet, onTime, morningMinutes, morningExtraMinutes, morningCutoff: cutoff,
             done, score, target, met, credit,
             restored, outstanding, recoveryLeft: recovery ? remaining.length : 0, rewardsOpen,
@@ -347,6 +353,8 @@
       let earned = saved.earned;
       let carried = saved.surplus || 0;
       let missUsed = Boolean(saved.missUsed);
+      let missCount = saved.missCount === undefined ? Number(missUsed) : saved.missCount;
+      const allowedSkips = goal.allowedSkips === undefined ? 1 : goal.allowedSkips;
       const start = Math.max(goal.start, state.syncedStart || state.first);
       for (let day = start; day < state.today && !earned; day++) {
         const row = getDay(day);
@@ -355,18 +363,20 @@
         carried = met ? points - goal.points : 0;
         if (met) {
           streak++;
-        } else if (streak > 0 && day >= goal.skipSince && !missUsed) {
+        } else if (streak > 0 && day >= goal.skipSince && missCount < allowedSkips) {
+          missCount++;
           missUsed = true;
         } else {
           streak = 0;
           missUsed = false;
+          missCount = 0;
         }
         earned = streak >= goal.days;
       }
       const todayPoints = info(index).score + carried;
       const todayMet = todayPoints >= goal.points;
       if (!earned && todayMet) streak++;
-      return { streak, earned, todayMet, carried, todayPoints, missUsed,
+      return { streak, earned, todayMet, carried, todayPoints, missUsed, missCount,
         skipEnabled: state.today >= goal.skipSince, surplus: Math.max(0, todayPoints - goal.points) };
     }
 
@@ -402,16 +412,18 @@
 
     function weekValues(index) {
       let videos = 0;
+      let repeats = 0;
       let bats = 0;
       for (let d = monday(state.today); d <= state.today; d++) {
         const row = getDay(d);
         if (row) {
           const credit = row[index].credit;
           videos += getEntry(d, index).videos;
+          repeats += Object.values(getEntry(d, index).repeatables || {}).reduce((sum, count) => sum + count, 0);
           bats += credit.bats;
         }
       }
-      return { videos, bats };
+      return { videos, repeats, bats };
     }
     return { getDay, info, longGoalProgress, weekStatus, weekTotal, weekValues, weekend, cache };
   }

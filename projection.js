@@ -43,6 +43,10 @@
       } else if (task.startsWith("video:")) {
         entry.videos++;
         entry.order.push("video");
+      } else if (task.startsWith('repeat:')) {
+        const id = task.split(':')[1];
+        entry.repeatables[id] = (entry.repeatables[id] || 0) + 1;
+        entry.order.push('repeat:' + id);
       } else if (task.startsWith("bonus:")) {
         entry.rewards.push(task.slice(6));
         entry.order.push(task);

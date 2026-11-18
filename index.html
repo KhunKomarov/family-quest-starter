@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'">
+<link rel="stylesheet" href="goals.css">
 <title>Семейный квест</title>
 <style>html,body{margin:0;background:#0b1731}body{padding:12px}</style></head><body>
 <section id="family-tv" aria-label="Семейный квест">
@@ -37,6 +38,7 @@
       <div class="cal-heading"><h2 id="family-long-goal-heading">Накопительная цель</h2><span data-long-goal-rule></span></div>
       <div class="cal-long-goal-rows" data-long-goal-rows></div>
     </section>
+    <section class="period-goal-list" data-calendar-goals hidden aria-label="Личные цели детей"></section>
     <section class="cal-week" aria-labelledby="family-week-heading">
       <div class="cal-heading"><h2 id="family-week-heading">Недельный прогресс</h2><span>↺✓ Восстановлено</span></div>
       <div class="cal-week-content">
@@ -129,6 +131,7 @@
   </div>
   <footer class="quest-footer">
     <div class="quest-long-goal" data-quest-long-goal hidden></div>
+    <div class="period-goal-list" data-profile-goals hidden aria-label="Мои цели"></div>
     <div class="quest-week"><span class="quest-week-dot" aria-hidden="true"></span> Норма за будни <strong data-week></strong><span class="quest-week-reward" data-weekend-label>5 из 5 → 1 час гаджетов в субботу</span></div>
     <div class="quest-keys" aria-label="Стрелки для выбора, Enter для отметки"><kbd>↑ ↓ ← →</kbd> Выбор <kbd>OK</kbd> Отметить <kbd>Esc</kbd> Назад</div>
     <span data-sync-status hidden aria-live="polite"></span>
@@ -408,6 +411,7 @@
 <script src="family-config.js"></script>
 <script src="rules.js"></script>
 <script src="projection.js"></script>
+<script src="period-goals.js"></script>
 <script src="journal.js"></script>
 <script src="task-icons.js"></script>
 <script src="tracker.js"></script>
