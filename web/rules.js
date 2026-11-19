@@ -10,6 +10,8 @@
   const ordinary = 7;
   const recoveryStart = Date.UTC(2026, 10, 12) / dayMs;
   const minuteLimit = 30;
+  const parentRewardSince = Date.UTC(2026, 10, 19) / dayMs;
+  const parentRewardRate = 5;
   const rewardOverflowSince = Date.UTC(2026, 10, 19) / dayMs;
   const morningCutoff = "07:10";
   const morningMinimumSince = Date.UTC(2026, 10, 16) / dayMs;
@@ -262,6 +264,16 @@
         pendingRewards.length = 0;
       }
 
+      function applyParent() {
+        parentCount++;
+        const score = baseCount + parentCount - entry.remarks;
+        if (day >= parentRewardSince && morningCount === morningRequired.size && score > target) {
+          if (score <= rewardTarget) awards.set("parent:" + parentCount, "На восстановление");
+          else credit("parent:" + parentCount, parentRewardRate);
+        }
+        settleRewards();
+      }
+
       function applyBase(mark) {
         baseCount++;
         const score = baseCount + parentCount - entry.remarks;
@@ -281,14 +293,14 @@
               if (morningRequired.has(id)) morningCount++;
               applyBase(mark);
               if (morningCount === morningRequired.size && pendingAfternoon.length) {
-                pendingAfternoon.forEach(applyBase);
+                pendingAfternoon.forEach(pending => pending === "parent" ? applyParent() : applyBase(pending));
                 pendingAfternoon.length = 0;
               }
             } else if (morningCount < morningRequired.size) pendingAfternoon.push(mark);
             else applyBase(mark);
           } else if (kind === "parent") {
-            parentCount++;
-            settleRewards();
+            if (day >= parentRewardSince && morningCount < morningRequired.size) pendingAfternoon.push("parent");
+            else applyParent();
           } else if (kind === "bonus" || kind === "video" || kind === 'repeat') {
             if (dailyReached()) applyReward(mark);
             else pendingRewards.push(mark);

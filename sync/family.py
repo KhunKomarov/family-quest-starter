@@ -34,6 +34,8 @@ COMBINED_BINS_DAY = (date(2026, 11, 12) - date(1970, 1, 1)).days
 COMBINED_BINS = "bins-and-bags"
 OLD_BINS = {"bins", "bags"}
 MINUTE_LIMIT = 30
+PARENT_REWARD_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
+PARENT_REWARD_RATE = 5
 REWARD_OVERFLOW_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
 ORDINARY = 7
 RECOVERY_START = (date(2026, 11, 12) - date(1970, 1, 1)).days
@@ -409,6 +411,14 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
                 apply_reward(task)
             rewards.clear()
 
+    def apply_parent():
+        nonlocal parents
+        parents += 1
+        if (day >= PARENT_REWARD_SINCE and morning == len(required_morning)
+                and base + parents - remarks > reward_target):
+            credit(PARENT_REWARD_RATE)
+        settle_rewards()
+
     def apply_base(task):
         nonlocal base
         base += 1
@@ -426,15 +436,20 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
                 apply_base(task)
                 if morning == len(required_morning) and afternoon:
                     for pending_task in afternoon:
-                        apply_base(pending_task)
+                        if pending_task == "parent":
+                            apply_parent()
+                        else:
+                            apply_base(pending_task)
                     afternoon.clear()
             elif morning < len(required_morning):
                 afternoon.append(task)
             else:
                 apply_base(task)
         elif task == "parent":
-            parents += 1
-            settle_rewards()
+            if day >= PARENT_REWARD_SINCE and morning < len(required_morning):
+                afternoon.append(task)
+            else:
+                apply_parent()
         elif task.startswith(("bonus:", "video:", "repeat:")):
             if reached():
                 apply_reward(task)
