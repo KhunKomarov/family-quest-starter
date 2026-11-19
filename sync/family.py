@@ -36,6 +36,7 @@ OLD_BINS = {"bins", "bags"}
 MINUTE_LIMIT = 30
 PARENT_REWARD_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
 PARENT_REWARD_RATE = 5
+VALUE_PRIORITY_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
 REWARD_OVERFLOW_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
 ORDINARY = 7
 RECOVERY_START = (date(2026, 11, 12) - date(1970, 1, 1)).days
@@ -376,6 +377,18 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
                                                 cutover, marked_minutes.get(task))
                        for task, title in menu["afternoon"]}
     video = menu["video"]
+    if day >= VALUE_PRIORITY_SINCE:
+        # Reserve the cheapest completed ordinary tasks for the norm and recovery.
+        # The original timestamps still determine morning eligibility and task rates.
+        def value_order(task):
+            if task in morning_ids:
+                return (0, 0, task)
+            if task in marked:
+                return (1, afternoon_rates.get(task, 0), task)
+            if task == "parent":
+                return (1, PARENT_REWARD_RATE, task)
+            return (2, 0, task)
+        tasks = sorted(tasks, key=value_order)
 
     def credit(rate):
         nonlocal minutes, bats, waiting_videos

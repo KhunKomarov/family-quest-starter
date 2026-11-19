@@ -12,6 +12,7 @@
   const minuteLimit = 30;
   const parentRewardSince = Date.UTC(2026, 10, 19) / dayMs;
   const parentRewardRate = 5;
+  const valuePrioritySince = Date.UTC(2026, 10, 19) / dayMs;
   const rewardOverflowSince = Date.UTC(2026, 10, 19) / dayMs;
   const morningCutoff = "07:10";
   const morningMinimumSince = Date.UTC(2026, 10, 16) / dayMs;
@@ -286,7 +287,19 @@
       }
 
       if (opened) {
-        for (const mark of entry.order) {
+        // Norm and recovery consume the cheapest ordinary marks, regardless of tap order.
+        const valueOrder = mark => {
+          const [kind, id] = mark.split(":");
+          if (kind === "base" && morningIds.has(id)) return [0, 0, id];
+          if (kind === "base" && marked.has(id)) return [1, afternoonRates.get(mark) || 0, id];
+          if (kind === "parent") return [1, parentRewardRate, "parent"];
+          return [2, 0, mark];
+        };
+        const order = day < valuePrioritySince ? entry.order : entry.order.slice().sort((a, b) => {
+          const x = valueOrder(a), y = valueOrder(b);
+          return x[0] - y[0] || x[1] - y[1] || (x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0);
+        });
+        for (const mark of order) {
           const [kind, id] = mark.split(":");
           if (kind === "base" && marked.has(id)) {
             if (morningIds.has(id)) {
