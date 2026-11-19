@@ -34,6 +34,7 @@ COMBINED_BINS_DAY = (date(2026, 11, 12) - date(1970, 1, 1)).days
 COMBINED_BINS = "bins-and-bags"
 OLD_BINS = {"bins", "bags"}
 MINUTE_LIMIT = 30
+REWARD_OVERFLOW_SINCE = (date(2026, 11, 19) - date(1970, 1, 1)).days
 ORDINARY = 7
 RECOVERY_START = (date(2026, 11, 12) - date(1970, 1, 1)).days
 TASK_SECTIONS = {"morning": "Утро", "afternoon": "Дневные дела", "rewards": "Супер дела", "repeatables": "Повторяемые дела"}
@@ -345,6 +346,12 @@ def afternoon_task_rate(day, task, title, previous=5, cutover=None, marked_minut
     return 10 if dishwasher or reflective_vest or piano or "мусор" in name else 5
 
 
+def split_reward(rate, minutes, day):
+    earned_minutes = min(rate, max(0, MINUTE_LIMIT - minutes))
+    earned_coins = rate - earned_minutes if day >= REWARD_OVERFLOW_SINCE or minutes >= MINUTE_LIMIT else 0
+    return earned_minutes, earned_coins
+
+
 def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligible, debt=0, cutover=None):
     tasks = [task for _, _, task in marks]
     marked = eligible.intersection(tasks)
@@ -370,10 +377,9 @@ def daily_reward(marks, menu, day, target, morning_ids, required_morning, eligib
 
     def credit(rate):
         nonlocal minutes, bats, waiting_videos
-        if minutes == MINUTE_LIMIT:
-            bats += rate
-        else:
-            minutes = min(minutes + rate, MINUTE_LIMIT)
+        earned_minutes, earned_coins = split_reward(rate, minutes, day)
+        minutes += earned_minutes
+        bats += earned_coins
         if minutes == MINUTE_LIMIT and waiting_videos:
             bats += waiting_videos * video["bats"]
             waiting_videos = 0

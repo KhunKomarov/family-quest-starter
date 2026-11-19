@@ -434,24 +434,24 @@
       const id = button.dataset.base;
       const checked = own(entry.base, id);
       const label = checked && !morningMet ? "Зачтётся после " + morningTotal + " утренних дел"
-        : awards.get("base:" + id) || (!checked && met ? recoveryLeft ? "На восстановление" : offer(rate, minutes) : "");
+        : awards.get("base:" + id) || (!checked && met ? recoveryLeft ? "На восстановление" : offer(rate, minutes, state.today) : "");
       paintTask(button, value, id, checked, label);
     });
     view.rewards.forEach(({button, value, rate}) => {
       const id = button.dataset.bonus;
       const checked = entry.rewards.includes(id);
       const task = "bonus:" + id;
-      const label = checked && !rewardsOpen ? (met ? "После восстановления" : "После дневной нормы") : awards.get(task) || offer(rate, minutes);
+      const label = checked && !rewardsOpen ? (met ? "После восстановления" : "После дневной нормы") : awards.get(task) || offer(rate, minutes, state.today);
       paintTask(button, value, task, checked, label);
     });
     const waitingVideos = rewardsOpen ? credit.pendingVideos : entry.videos;
     view.video.button.setAttribute("aria-disabled", String(!open));
-    view.video.value.textContent = offer(videoRate(view.menu), minutes);
+    view.video.value.textContent = offer(videoRate(view.menu), minutes, state.today);
     view.videoCount.textContent = " · за неделю: " + stats.videos
       + (waitingVideos ? (met ? " · после восстановления: " : " · после дневной нормы: ") + waitingVideos : "");
     view.repeatables.forEach(task => {
       task.button.setAttribute('aria-disabled', String(!open));
-      task.value.textContent = offer(task.rate, minutes);
+      task.value.textContent = offer(task.rate, minutes, state.today);
       task.count.textContent = ' · сегодня: ' + (entry.repeatables[task.id] || 0) +
         (!rewardsOpen ? (met ? ' · после восстановления' : ' · после дневной нормы') : '');
     });
@@ -500,7 +500,7 @@
       }, 0);
     text("[data-wallet]", Number.isSafeInteger(balance) ? balance + " жет." : "—");
     text("[data-cash-earned]", "Сегодня " + bats + " жет. · за неделю " + stats.bats + " жет.");
-    text("[data-cash-next]", minutes === minuteLimit ? "Теперь цена дела начисляется в монетах" : "После 30 минут цена дела начисляется в монетах");
+    text("[data-cash-next]", minutes === minuteLimit ? "Теперь цена дела начисляется в монетах" : "Остаток награды сверх 30 минут идёт в монеты");
     text("[data-week]", weekTotal(index) + " из 5");
     const goal = state.longGoal;
     const progress = longGoalProgress(index);
