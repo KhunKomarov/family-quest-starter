@@ -10,6 +10,7 @@
   const ordinary = 7;
   const recoveryStart = Date.UTC(2026, 10, 12) / dayMs;
   const minuteLimit = 30;
+  const rewardOverflowSince = Date.UTC(2026, 10, 19) / dayMs;
   const morningCutoff = "07:10";
   const morningMinimumSince = Date.UTC(2026, 10, 16) / dayMs;
   const morningWindowsSince = Date.UTC(2026, 10, 17) / dayMs;
@@ -108,8 +109,18 @@
 
   const videoRate = menu => menu.video.minutes || menu.video.bats;
 
-  function offer(rate, minutes) {
-    return minutes === minuteLimit ? "+" + rate + " жет." : "+" + Math.min(rate, minuteLimit - minutes) + " мин";
+  function splitReward(rate, minutes, day = realDay()) {
+    const earnedMinutes = Math.min(rate, Math.max(0, minuteLimit - minutes));
+    const bats = day >= rewardOverflowSince || minutes >= minuteLimit ? rate - earnedMinutes : 0;
+    return { minutes: earnedMinutes, bats };
+  }
+
+  function offer(rate, minutes, day = realDay()) {
+    const reward = splitReward(rate, minutes, day);
+    const parts = [];
+    if (reward.minutes) parts.push("+" + reward.minutes + " мин");
+    if (reward.bats) parts.push("+" + reward.bats + " жет.");
+    return parts.join(" · ");
   }
 
   function afternoonTaskRate(day, id, title, previous = 5, cutover, markedTime) {
@@ -218,9 +229,10 @@
       }
 
       function credit(key, rate) {
-        awards.set(key, offer(rate, minutes));
-        if (minutes === minuteLimit) bats += rate;
-        else minutes += Math.min(rate, minuteLimit - minutes);
+        const reward = splitReward(rate, minutes, day);
+        awards.set(key, offer(rate, minutes, day));
+        minutes += reward.minutes;
+        bats += reward.bats;
         settleVideos();
       }
 
@@ -430,6 +442,6 @@
 
   window.FamilyRules = { dayMs, utcOffset, ordinary, minuteLimit, morningCutoff, weekdayShort, weekdayLong,
     morningTasks, bonusTasks, children, sampleStart, timeNow, realDay, date, weekday, monday, dateText,
-    blank, dayTasks, awardRate, menuFor, videoRate, offer, afternoonTaskRate, chartHeight, dayColumn, longGoalStatus,
+    blank, dayTasks, awardRate, menuFor, videoRate, splitReward, offer, afternoonTaskRate, chartHeight, dayColumn, longGoalStatus,
     longGoalCells, longGoalTodayText, morningCutoffFor, morningTimeText, entertainmentCutoff, createStats };
 })();
