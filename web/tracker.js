@@ -397,7 +397,7 @@
       panels[i].hidden = i !== state.tab;
     });
     text("[data-base-tab]", morningDone + " / " + morningTotal);
-    text("[data-day-tab]", morningMet ? score + " / " + target : "После утра");
+    text("[data-day-tab]", String(view.afternoon.filter(({button}) => own(entry.base, button.dataset.base)).length));
     text("[data-bonus-tab]", rewardsOpen ? "Начисляются" : met ? "После восстановления" : "После нормы");
     attr(get("[data-bonus-tab]"), "data-open", rewardsOpen);
     const dailyDone = state.dailyTasks.filter(task => task.done.includes(index)).length;
