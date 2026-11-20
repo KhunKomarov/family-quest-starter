@@ -6,7 +6,22 @@
 
 [Посмотреть демо](https://khunkomarov.github.io/family-quest-starter/?demo=1) · [Скачать актуальный ZIP](https://github.com/KhunKomarov/family-quest-starter/archive/refs/heads/main.zip) · [Создать свою копию](https://github.com/new?template_name=family-quest-starter&template_owner=KhunKomarov) · [Видеоинструкция](https://khunkomarov.github.io/family-quest-starter/guide/)
 
-![Календарь на вымышленных данных](docs/demo.jpg)
+## Как выглядит
+
+Демонстрационная семья с вымышленными именами, аватарами и результатами. Это действующий интерфейс версии 1.3.5 в раскладках телефона, телевизора и машины. Нажмите на изображение, чтобы открыть полный размер.
+
+<table>
+  <tr><th>Телефон · кабинет родителей</th><th>Телевизор · семейный календарь</th></tr>
+  <tr>
+    <td rowspan="3" valign="top" width="30%"><a href="docs/screenshots/phone-parent.jpg"><img src="docs/screenshots/phone-parent.jpg" alt="Телефон: проверка дел, начисления и копилка" width="280"></a></td>
+    <td><a href="docs/screenshots/tv-calendar.jpg"><img src="docs/screenshots/tv-calendar.jpg" alt="Телевизор: календарь, столбики и цели каждого ребёнка" width="640"></a></td>
+  </tr>
+  <tr><th>Машина · профиль ребёнка</th></tr>
+  <tr><td><a href="docs/screenshots/car-profile.jpg"><img src="docs/screenshots/car-profile.jpg" alt="Машина: дневные дела, крупные кнопки и заработанные награды" width="640"></a></td></tr>
+</table>
+
+[Телефон](docs/screenshots/phone-parent.jpg) · [Телевизор](docs/screenshots/tv-calendar.jpg) · [Машина](docs/screenshots/car-profile.jpg)
+
 
 ## 1. Для чего нужен трекер
 
